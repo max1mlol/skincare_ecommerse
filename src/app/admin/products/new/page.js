@@ -1,6 +1,7 @@
+"use client";
+// admin/products/new/page.js — шинэ бараа нэмэх хуудас
 import ProductForm from "@/components/admin/ProductForm";
 
-// Шинэ бүтээгдэхүүн үүсгэхдээ form-ийг create mode-оор ачаална.
 export default function NewProductPage() {
-  return <ProductForm isEdit={false} />;
+  return <ProductForm />;
 }

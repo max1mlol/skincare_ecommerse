@@ -24,7 +24,7 @@ const BRANCHES = [
     address: "Хан-Уул дүүрэг, Энхтайвны гудамж 23, Nomin Market дэргэд",
     phone: "+976 7700-0003",
     hours: "Даваа–Баасан: 10:00–19:00 · Бямба: 10:00–18:00",
-    tag: null,
+    tag: null, // Шошго байхгүй → харуулахгүй
   },
   {
     id: 4,
@@ -45,11 +45,18 @@ const BRANCHES = [
   },
 ];
 
-// Home болон About хуудсанд дахин ашиглах боломжтой салбарын жагсаалт.
+// ── BranchesSection компонент ─────────────────────────────────────────────────
+// Параметр байхгүй — өгөгдлөө дээрх BRANCHES тогтмолоос авна.
 export default function BranchesSection() {
   return (
+    // <section> → "Нэг бүлгийн агуулга" гэдгийг хайлтын системд мэдэгдэнэ.
+    // id="branches" → "/about#branches" холбоос энэ хэсэг рүү гүйлгэж очно.
     <section id="branches" className="py-20 px-4 bg-muted/20">
+
+      {/* max-w-7xl: агуулгын хамгийн их өргөнийг хязгаарлана | mx-auto: голд тэнцүүлнэ */}
       <div className="max-w-7xl mx-auto">
+
+        {/* ── ГАРЧИГ ── */}
         <div className="text-center mb-12">
           <p className="text-xs tracking-[0.4em] uppercase text-muted-foreground mb-3">
             Манай хаяг
@@ -58,29 +65,45 @@ export default function BranchesSection() {
             Салбар дэлгүүрүүд
           </h2>
         </div>
+
+        {/* ── КАРТЫН GRID ── */}
+        {/* Утасны дэлгэцэнд 1 багана, дунд дэлгэцэнд 2, том дэлгэцэнд 3 багана */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          {/* BRANCHES-ийн элемент бүрийг (b) карт болгон үзүүлнэ */}
+          {/* .map() → массивын элемент бүрт функц дуудаж шинэ JSX үүсгэнэ */}
           {BRANCHES.map((b) => (
             <div
-              key={b.id}
+              key={b.id}  // React-д давтагдахгүй key заавал хэрэгтэй
               className="bg-card border border-border rounded-2xl p-6 hover:shadow-sm transition-shadow flex flex-col gap-4"
             >
+              {/* ── НЭР + ШОШГО ── */}
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground leading-tight">
                   {b.name}
                 </h3>
+                {/* b.tag байвал л шошго харуулна */}
                 {b.tag && (
                   <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-foreground text-background">
                     {b.tag}
                   </span>
                 )}
               </div>
+
+              {/* ── БАЙРШИЛ / УТАС / ЦАГ ── */}
               <div className="space-y-2.5 text-sm">
+
+                {/* Байршил */}
                 <div className="flex gap-2.5 text-muted-foreground">
+                  {/* shrink-0: icon дэлгэц жижигрэхэд хэлбэрээ алдахгүй */}
                   <MapPin size={14} className="shrink-0 mt-0.5" />
                   <span>{b.address}</span>
                 </div>
+
+                {/* Утас — дарахад залгах холбоос */}
                 <div className="flex gap-2.5 text-muted-foreground">
                   <Phone size={14} className="shrink-0 mt-0.5" />
+                  {/* tel: протокол → утас залгана | replace: зай, "-" устгаж цэвэр дугаар авна */}
                   <a
                     href={`tel:${b.phone.replace(/[\s-]/g, "")}`}
                     className="hover:text-foreground transition-colors"
@@ -88,6 +111,8 @@ export default function BranchesSection() {
                     {b.phone}
                   </a>
                 </div>
+
+                {/* Ажлын цаг */}
                 <div className="flex gap-2.5 text-muted-foreground">
                   <Clock size={14} className="shrink-0 mt-0.5" />
                   <span>{b.hours}</span>

@@ -32,9 +32,12 @@ function CommandDialog({
   description = "Search for a command to run...",
   children,
   className,
+  commandProps,
   showCloseButton = false,
   ...props
 }) {
+  const { className: commandClassName, ...restCommandProps } = commandProps ?? {};
+
   return (
     <Dialog {...props}>
       <DialogHeader className="sr-only">
@@ -45,7 +48,13 @@ function CommandDialog({
         className={cn("overflow-hidden rounded-xl! p-0 sm:max-w-xl", className)}
         showCloseButton={showCloseButton}
       >
-        <Command className="**:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 **:[[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 **:[[cmdk-input]]:h-12 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+        <Command
+          {...restCommandProps}
+          className={cn(
+            "**:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 **:[[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 **:[[cmdk-input]]:h-12 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5",
+            commandClassName,
+          )}
+        >
           {children}
         </Command>
       </DialogContent>

@@ -1,39 +1,56 @@
+// layout.js — вэбсайтын бүх хуудсанд нийтлэг бүтэц, provider-ууд
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext";
-import { SearchPalette } from "@/components/SearchPalette";
+import { CartProvider }    from "@/context/CartContext";
+import { SessionProvider } from "@/context/SessionContext";
+import { ThemeProvider }   from "@/components/ThemeProvider";
+import { SearchPalette }   from "@/components/SearchPalette";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-// Root layout нь бүх хуудсанд нийтлэг фонт, global style, context-уудыг залгаж өгдөг.
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata = {
-  title: "AURA SKIN — Арьс Засах Тэргүүлэх Брэнд",
-  description:
-    "Монголын тэргүүлэх арьсны арчилгааны дэлгүүр. Байгалийн гаралтай, шинжлэх ухааны үндэстэй бүтээгдэхүүнүүд.",
-  keywords: "skincare, арьс засал, нүүрний тос, сэрум, Монгол",
+  metadataBase: new URL("https://auraskin.mn"),
+  title: {
+    default:  "AURA SKIN — Монголын Арьс Арчилгааны Дэлгүүр",
+    template: "%s | AURA SKIN",
+  },
+  description: "Монголын тэргүүлэх арьсны арчилгааны дэлгүүр. COSRX, La Roche-Posay, CeraVe — 100% оригинал бараа.",
+  keywords:    ["skincare", "арьс засал", "нүүрний тос", "сэрум", "COSRX", "Монгол"],
+  openGraph: {
+    type:        "website",
+    locale:      "mn_MN",
+    url:         "https://auraskin.mn",
+    siteName:    "AURA SKIN",
+    title:       "AURA SKIN — Монголын Арьс Арчилгааны Дэлгүүр",
+    description: "Дэлхийн шилдэг арьс арчилгааны брэндүүд нэг дороос. 100% оригинал.",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "AURA SKIN" }],
+  },
+  twitter: {
+    card:        "summary_large_image",
+    title:       "AURA SKIN — Монголын Арьс Арчилгааны Дэлгүүр",
+    description: "Дэлхийн шилдэг арьс арчилгааны брэндүүд нэг дороос.",
+    images:      ["/og-image.jpg"],
+  },
+  robots: { index: true, follow: true },
 };
 
-// App Router-ийн үндсэн wrapper тул html болон body тагийг энд заавал буцаана.
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="mn"
-      data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="mn" data-scroll-behavior="smooth" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <CartProvider>
-          <SearchPalette />
-          {children}
-        </CartProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <SessionProvider>
+            <CartProvider>
+              {/* SearchPalette: "/" товчоор нээгдэх глобал хайлт */}
+              <SearchPalette />
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
+            </CartProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

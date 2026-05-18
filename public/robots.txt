@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block admin pages from crawlers
+Disallow: /admin
+Disallow: /api/
+Disallow: /checkout
+Disallow: /cart
+
+Sitemap: https://auraskin.mn/sitemap.xml

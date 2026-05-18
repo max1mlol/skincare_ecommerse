@@ -1,94 +1,131 @@
 "use client";
-
-import { createContext, useContext, useReducer, useEffect } from "react";
-
-// Сагсны мэдээллийг app даяар түгээх context.
+// CartContext — сагсны төлөвийг вэбсайт даяар удирдана.
+// localStorage-д хадгалдаг тул хуудас шинэчлэлт хийсэн ч сагс хэвээр байна.
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useSession } from "./SessionContext";
+import { useRouter } from "next/navigation";
 
 const CartContext = createContext(null);
 
-// Reducer нь сагстай холбоотой бүх үйлдлийг нэг загвараар боловсруулна.
-function cartReducer(state, action) {
-  switch (action.type) {
-    case "ADD": {
-      const existing = state.items.find((i) => i.id === action.item.id);
-      if (existing) {
-        return {
-          ...state,
-          items: state.items.map((i) =>
-            i.id === action.item.id
-              ? { ...i, quantity: i.quantity + (action.qty ?? 1) }
-              : i,
-          ),
-        };
-      }
-      return {
-        ...state,
-        items: [...state.items, { ...action.item, quantity: action.qty ?? 1 }],
-      };
-    }
-    case "REMOVE":
-      return { ...state, items: state.items.filter((i) => i.id !== action.id) };
-
-    case "UPDATE_QTY":
-      return {
-        ...state,
-        items: state.items.map((i) =>
-          i.id === action.id ? { ...i, quantity: Math.max(1, action.qty) } : i,
-        ),
-      };
-
-    case "CLEAR":
-      return { ...state, items: [] };
-
-    case "HYDRATE":
-      return { ...state, items: action.items };
-
-    default:
-      return state;
-  }
-}
-
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const { user } = useSession();
+  const router = useRouter();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [prevUserId, setPrevUserId] = useState(user?.id);
 
-  // Хуудас дахин ачаалагдсан ч өмнөх сагсыг localStorage-оос сэргээнэ.
-  useEffect(() => {
+  // Sync state during render when user changes (e.g., logs in or logs out)
+  if (user?.id !== prevUserId) {
+    setPrevUserId(user?.id);
+    setItems([]);
+    setLoading(!!user); // If user logs out, loading is false. If user logs in, loading is true until fetch completes.
+  }
+
+  // Fetch cart from backend
+  const fetchCart = useCallback(async () => {
+    if (!user) return; // Do not fetch, state is already reset during render
+    
     try {
-      const saved = localStorage.getItem("aura_cart");
-      if (saved) dispatch({ type: "HYDRATE", items: JSON.parse(saved) });
-    } catch {}
-  }, []);
+      const res = await fetch("/api/cart", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        // map db items to ui expected format
+        const mapped = data.items.map(i => ({
+          id: i.product_id,
+          name: i.name,
+          nameMn: i.name_mn,
+          price: i.price,
+          image: i.image,
+          category: i.category,
+          categoryMn: i.category_mn,
+          qty: i.qty
+        }));
+        setItems(mapped);
+      }
+    } catch (err) {
+      console.error("Cart fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
+    (async () => {
+      await fetchCart();
+    })();
+  }, [fetchCart]);
+
+  const requireLogin = () => {
+    if (!user) {
+      alert("Та сагсанд бараа нэмэхийн тулд эхлээд нэвтэрнэ үү.");
+      router.push("/login");
+      return false;
+    }
+    return true;
+  };
+
+  const addItem = async (item, qty = 1) => {
+    if (!requireLogin()) return;
     try {
-      localStorage.setItem("aura_cart", JSON.stringify(state.items));
-    } catch {}
-  }, [state.items]);
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: item.id, qty })
+      });
+      if (res.ok) {
+        await fetchCart();
+      }
+    } catch (err) { console.error(err); }
+  };
 
-  const addItem = (item, qty = 1) => dispatch({ type: "ADD", item, qty });
-  const removeItem = (id) => dispatch({ type: "REMOVE", id });
-  const updateQty = (id, qty) => dispatch({ type: "UPDATE_QTY", id, qty });
-  const clearCart = () => dispatch({ type: "CLEAR" });
+  const removeItem = async (id) => {
+    if (!requireLogin()) return;
+    try {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (res.ok) {
+        setItems(prev => prev.filter(i => i.id !== id));
+      }
+    } catch (err) { console.error(err); }
+  };
 
-  // UI дээр олон газар хэрэг болдог тооцооллыг provider дотроо бэлдэж өгч байна.
-  const totalItems = state.items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = state.items.reduce(
-    (sum, i) => sum + i.price * i.quantity,
-    0,
-  );
+  const setQty = async (id, qty) => {
+    if (!requireLogin()) return;
+    if (qty < 1) return;
+    try {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qty })
+      });
+      if (res.ok) {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, qty } : i));
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const clearCart = async () => {
+    if (!requireLogin()) return;
+    try {
+      const res = await fetch("/api/cart", {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (res.ok) {
+        setItems([]);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const totalItems = items.reduce((s, i) => s + i.qty, 0);
+  const subtotal   = items.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
-    <CartContext.Provider
-      value={{
-        items: state.items,
-        addItem,
-        removeItem,
-        updateQty,
-        clearCart,
-        totalItems,
-        subtotal,
-      }}
-    >
+    <CartContext.Provider value={{ items, addItem, removeItem, setQty, clearCart, totalItems, subtotal, loading }}>
       {children}
     </CartContext.Provider>
   );
@@ -96,7 +133,6 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  // Provider-оос гадуур дуудагдвал хөгжүүлэлтийн үед шууд анзаарагдахаар алдаа шиднэ.
-  if (!ctx) throw new Error("useCart must be used inside CartProvider");
+  if (!ctx) throw new Error("useCart must be inside CartProvider");
   return ctx;
 }

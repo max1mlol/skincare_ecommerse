@@ -127,13 +127,13 @@
   }
 }
 
-/* ── Custom utilities ── */
+/* ── Захиалгат CSS Классууд (Custom Utilities) ── */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 
-  /* subtle underline animation for nav links */
+  /* Навигацийн холбоос дээрх зөөлөн доогуур зураас анимейшн */
   .nav-link {
     position: relative;
   }
@@ -151,7 +151,7 @@
     width: 100%;
   }
 
-  /* product card image zoom */
+  /* Барааны зураг дээр хулгана очиход бага зэрэг томрох (zoom) */
   .product-img-wrap {
     overflow: hidden;
   }
@@ -162,7 +162,7 @@
     transform: scale(1.05);
   }
 
-  /* fade-up animation */
+  /* Доороос дээш гарч ирэх (fade-up) анимейшн */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -175,7 +175,7 @@
   .animation-delay-300 { animation-delay: 0.3s; }
   .animation-delay-400 { animation-delay: 0.4s; }
 
-  /* marquee ticker */
+  /* Тасралтгүй гүйдэг (marquee) анимейшн */
   @keyframes marquee {
     0%   { transform: translate3d(0, 0, 0); }
     100% { transform: translate3d(-50%, 0, 0); }

@@ -1,15 +1,23 @@
+// Энэ файлын үүрэг:
+//   Вэбсайтын доод хэсэг (footer).
+//   Брэндийн лого, нийгмийн сүлжээний дүрсүүд (social icons), холбоо барих
+//   мэдээлэл, navigation холбоосуудыг нэгтгэнэ.
+
+// Link: Next.js-ийн хуудас шилжилтийн компонент.
 import Link from "next/link";
+
+// Mail: имэйл дүрс | Phone: утас дүрс | MapPin: байршлын дүрс (lucide-react)
 import { Mail, Phone, MapPin } from "lucide-react";
 
-// Гаднын asset ашиглахгүйгээр social icon-уудыг inline SVG-ээр зурсан.
+// НИЙГМИЙН СҮЛЖЭЭНИЙ ДҮРСҮҮД (SVG)
+// Эдгээр функцүүд нь тус тусын логог буцааж өгдөг жижиг компонентууд.
+// fill="currentColor" → CSS текстийн өнгийг ашиглана (цайвар/харанхуй горим дэмжинэ).
+// aria-hidden="true" → дэлгэц уншигч (screen reader) энэ дүрсийг алгасна (зохистой).
+
 function InstagramIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="w-4 h-4"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+      {/* Instagram-ийн дугуй хүрэм дүрсийн SVG path */}
       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
     </svg>
   );
@@ -17,12 +25,8 @@ function InstagramIcon() {
 
 function FacebookIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="w-4 h-4"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+      {/* Facebook-ийн "f" дүрсийн SVG path */}
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
     </svg>
   );
@@ -30,12 +34,8 @@ function FacebookIcon() {
 
 function TikTokIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="w-4 h-4"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+      {/* TikTok-ийн нотны дүрсний SVG path */}
       <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.29 6.29 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.53V6.79a4.85 4.85 0 01-1.01-.1z" />
     </svg>
   );
@@ -43,17 +43,16 @@ function TikTokIcon() {
 
 function XIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="w-4 h-4"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+      {/* X (Twitter) дүрсний SVG path */}
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.258 5.622 5.905-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
 
+// FOOTER NAVIGATION ХОЛБООСУУД
+// Объект дотор массив хадгалж байна: { Гарчиг: [холбоосуудын массив] }
+// Object.entries() ашиглан доор давталтаар үзүүлнэ.
 const FOOTER_LINKS = {
   Бүтээгдэхүүн: [
     { href: "/products?cat=serum", label: "Сэрум" },
@@ -74,80 +73,75 @@ const FOOTER_LINKS = {
   ],
 };
 
+// НИЙГМИЙН СҮЛЖЭЭНИЙ ЖАГСААЛТ
+// href: хаяг | label: нэр (aria-label) | Icon: дүрсийн компонент (функц)
 const SOCIAL = [
-  {
-    href: "https://instagram.com/auraskin.mn",
-    label: "Instagram",
-    Icon: InstagramIcon,
-  },
-  {
-    href: "https://facebook.com/auraskin.mn",
-    label: "Facebook",
-    Icon: FacebookIcon,
-  },
-  {
-    href: "https://tiktok.com/@auraskin.mn",
-    label: "TikTok",
-    Icon: TikTokIcon,
-  },
+  { href: "https://instagram.com/auraskin.mn", label: "Instagram", Icon: InstagramIcon },
+  { href: "https://facebook.com/auraskin.mn", label: "Facebook", Icon: FacebookIcon },
+  { href: "https://tiktok.com/@auraskin.mn", label: "TikTok", Icon: TikTokIcon },
   { href: "https://x.com/auraskin_mn", label: "X", Icon: XIcon },
 ];
 
-// Footer нь холбоо барих мэдээлэл, navigation, social сувгуудыг нэгтгэнэ.
+// Footer компонент
 export default function Footer() {
   return (
-    <footer className="bg-foreground text-white mt-auto">
-      {/* ── Main content ── */}
+    // mt-auto: хуудасны агуулга богино байсан ч footer-ийг доод хэсэгт бэхэлнэ.
+    <footer className="bg-zinc-900 dark:bg-zinc-950 text-white mt-auto">
+
+      {/* ── ҮНДСЭН АГУУЛГА ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        {/* md:grid-cols-5: том дэлгэцэнд 5 баганатай grid */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
-          {/* Brand column */}
+
+          {/* ── БРЭНДИЙН БАГАНА (2 багана өргөн) ── */}
           <div className="md:col-span-2">
+
+            {/* Лого */}
             <Link href="/" className="block mb-3">
-              <span className="font-bold text-xl tracking-tight text-white">
-                AURA SKIN
-              </span>
+              <span className="font-bold text-xl tracking-tight text-white">AURA SKIN</span>
               <span className="block text-[10px] tracking-[0.4em] text-white/40 uppercase mt-0.5">
                 Skin Care Mongolia
               </span>
             </Link>
 
-            {/* Social icons */}
+            {/* ── НИЙГМИЙН СҮЛЖЭЭНИЙ ДҮРСҮҮД ── */}
             <div className="flex gap-2 mb-5">
+              {/* SOCIAL массивын элемент бүрийг дүрслэнэ */}
+              {/* { href, label, Icon } → объектоос задалж (destructure) авна */}
               {SOCIAL.map(({ href, label, Icon }) => (
                 <a
                   key={label}
                   href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
+                  target="_blank"         // Шинэ tab-д нээнэ
+                  rel="noopener noreferrer" // Аюулгүй байдлын тохиргоо
+                  aria-label={label}       // Дэлгэц уншигчид зориулсан нэр
                   className="w-8 h-8 rounded-lg border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:border-white/50 hover:bg-white/10 transition-all"
                 >
+                  {/* Icon нь функц компонент тул <Icon /> байдлаар дуудна */}
                   <Icon />
                 </a>
               ))}
             </div>
 
+            {/* Товч тайлбар */}
             <p className="text-sm text-white/50 leading-relaxed mb-5">
-              Дэлхийн шилдэг арьс арчилгааны брэндүүдийн албан ёсны 
+              Дэлхийн шилдэг арьс арчилгааны брэндүүдийн албан ёсны{" "}
               гэрээт борлуулагч дэлгүүр.
             </p>
 
-            {/* Contact */}
+            {/* ── ХОЛБОО БАРИХ ── */}
             <div className="space-y-2 text-sm text-white/50">
-              <a
-                href="tel:+97677000000"
-                className="flex items-center gap-2 hover:text-white transition-colors"
-              >
+              {/* Утасны холбоос — дарахад залгана */}
+              <a href="tel:+97677000000" className="flex items-center gap-2 hover:text-white transition-colors">
                 <Phone size={13} className="shrink-0" />
                 +976 7700-0000
               </a>
-              <a
-                href="mailto:hello@auraskin.mn"
-                className="flex items-center gap-2 hover:text-white transition-colors"
-              >
+              {/* Имэйл холбоос — дарахад имэйл программ нээнэ */}
+              <a href="mailto:hello@auraskin.mn" className="flex items-center gap-2 hover:text-white transition-colors">
                 <Mail size={13} className="shrink-0" />
                 hello@auraskin.mn
               </a>
+              {/* Хаяг (холбоос биш, зөвхөн текст) */}
               <p className="flex items-center gap-2">
                 <MapPin size={13} className="shrink-0 mt-0.5" />
                 Улаанбаатар хот, Монгол
@@ -155,19 +149,20 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
+          {/* ── NAVIGATION БАГАНУУД ── */}
+          {/* Object.entries(FOOTER_LINKS) → [["Бүтээгдэхүүн", [...]], ["Компани", [...]]] */}
+          {/* Объектыг [гарчиг, холбоосуудын массив] хосоор задалж давтана */}
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
             <div key={title}>
+              {/* Баганын гарчиг */}
               <h3 className="text-[11px] tracking-[0.35em] uppercase text-white/40 mb-4 font-medium">
                 {title}
               </h3>
+              {/* Холбоосуудын жагсаалт */}
               <ul className="flex flex-col gap-2.5">
                 {links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/60 hover:text-white transition-colors"
-                    >
+                    <Link href={link.href} className="text-sm text-white/60 hover:text-white transition-colors">
                       {link.label}
                     </Link>
                   </li>
@@ -178,26 +173,17 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ── Bottom bar ── */}
+      {/* ── ДООД МӨР (COPYRIGHT) ── */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
+          {/* new Date().getFullYear() → одоогийн жилийг автоматаар тооцоолно */}
           <p className="text-xs text-white/30">
-            © {new Date().getFullYear()} AURA SKIN. Бүх эрх хуулиар
-            хамгаалагдсан.
+            © {new Date().getFullYear()} AURA SKIN. Бүх эрх хуулиар хамгаалагдсан.
           </p>
+          {/* Нууцлал ба Нөхцөл холбоосууд */}
           <div className="flex items-center gap-4 text-xs text-white/30">
-            <Link
-              href="/privacy"
-              className="hover:text-white/60 transition-colors"
-            >
-              Нууцлал
-            </Link>
-            <Link
-              href="/terms"
-              className="hover:text-white/60 transition-colors"
-            >
-              Нөхцөл
-            </Link>
+            <Link href="/privacy" className="hover:text-white/60 transition-colors">Нууцлал</Link>
+            <Link href="/terms" className="hover:text-white/60 transition-colors">Нөхцөл</Link>
           </div>
         </div>
       </div>

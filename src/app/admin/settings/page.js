@@ -9,7 +9,9 @@ import {
   Palette,
   Globe,
   CreditCard,
+  User,
 } from "lucide-react";
+import { useSession } from "@/context/SessionContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 
 // Settings sidebar дотор харагдах үндсэн хэсгүүд.
 const SECTIONS = [
+  { id: "profile", label: "Миний профайл", icon: User },
   { id: "store", label: "Дэлгүүр", icon: Store },
   { id: "notif", label: "Мэдэгдэл", icon: Bell },
   { id: "payment", label: "Төлбөр", icon: CreditCard },
@@ -56,8 +59,17 @@ function ToggleRow({ label, description, checked, onCheckedChange }) {
 }
 
 export default function AdminSettingsPage() {
-  const [activeSection, setActiveSection] = useState("store");
-  const [saved, setSaved] = useState(false);
+  const { user, refetch } = useSession();
+  const [activeSection, setActiveSection] = useState("profile"); // Одоо харагдаж буй тохиргооны хэсэг
+  const [saved, setSaved] = useState(false); // Хадгалсан төлөв (Succes message харуулах)
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  
+  const [profile, setProfile] = useState({
+    firstName: user?.first_name ?? "",
+    lastName: user?.last_name ?? "",
+    phone: user?.phone ?? "",
+  });
 
   const [store, setStore] = useState({
     name: "AURA SKIN",
@@ -86,10 +98,34 @@ export default function AdminSettingsPage() {
     showRevenue: true,
   });
 
+  // Тохиргоог хадгалах функц (Simulation)
   async function handleSave() {
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 600)); // 0.6 секунд хүлээлгэнэ
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2000); // 2 секундын дараа амжилтын мессежийг арилгана
+  }
+
+  async function handleProfileSave() {
+    if (!user) return;
+    setProfileSaving(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      if (res.ok) {
+        await refetch();
+        setIsEditingProfile(false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   return (
@@ -101,14 +137,28 @@ export default function AdminSettingsPage() {
             Дэлгүүрийн ерөнхий тохиргоо
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          className="rounded-full gap-2 h-9 text-sm"
-          id="save-settings-btn"
-        >
-          <Save size={14} />
-          {saved ? "Хадгалагдлаа ✓" : "Хадгалах"}
-        </Button>
+        {activeSection === "profile" ? (
+          isEditingProfile && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => { setIsEditingProfile(false); setProfile({ firstName: user?.first_name ?? "", lastName: user?.last_name ?? "", phone: user?.phone ?? "" }); }} className="rounded-full h-9 text-sm">
+                Цуцлах
+              </Button>
+              <Button onClick={handleProfileSave} disabled={profileSaving} className="rounded-full gap-2 h-9 text-sm">
+                <Save size={14} />
+                {profileSaving ? "Хадгалж байна..." : (saved ? "Хадгалагдлаа ✓" : "Хадгалах")}
+              </Button>
+            </div>
+          )
+        ) : (
+          <Button
+            onClick={handleSave}
+            className="rounded-full gap-2 h-9 text-sm"
+            id="save-settings-btn"
+          >
+            <Save size={14} />
+            {saved ? "Хадгалагдлаа ✓" : "Хадгалах"}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -130,8 +180,43 @@ export default function AdminSettingsPage() {
           ))}
         </nav>
 
-        {/* Content */}
+        {/* Сонгосон хэсгээс хамаарч тохиргооны агуулгыг харуулах (Conditional rendering) */}
         <div className="lg:col-span-3 space-y-5">
+          {activeSection === "profile" && (
+            <div className="bg-card border border-border rounded-xl p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Хувийн мэдээлэл</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Админ профайлын мэдээлэл</p>
+                </div>
+                {!isEditingProfile && (
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(true)}>
+                    Өөрчлөх
+                  </Button>
+                )}
+              </div>
+              <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="p-fname">Нэр</Label>
+                  <Input id="p-fname" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} disabled={!isEditingProfile} className={`rounded-xl h-9 text-sm ${!isEditingProfile ? 'opacity-70 bg-muted/50' : ''}`} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="p-lname">Овог</Label>
+                  <Input id="p-lname" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} disabled={!isEditingProfile} className={`rounded-xl h-9 text-sm ${!isEditingProfile ? 'opacity-70 bg-muted/50' : ''}`} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="p-email">Имэйл</Label>
+                  <Input id="p-email" type="email" value={user?.email || ""} disabled className="rounded-xl h-9 text-sm opacity-60 bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="p-phone">Утас</Label>
+                  <Input id="p-phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={!isEditingProfile} className={`rounded-xl h-9 text-sm ${!isEditingProfile ? 'opacity-70 bg-muted/50' : ''}`} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeSection === "store" && (
             <Section
               title="Дэлгүүрийн мэдээлэл"

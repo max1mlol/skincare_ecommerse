@@ -1,296 +1,162 @@
 "use client";
-
-import { useState, useMemo } from "react";
+// admin/products/page.js — бүтээгдэхүүний удирдлага (API-аас бодит өгөгдөл)
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  MoreHorizontal,
-  Package,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { PRODUCTS as INITIAL_PRODUCTS } from "@/lib/products";
+import { getImageUrl } from "@/lib/utils";
+import { Plus, Search, Pencil, Trash2, Package, RefreshCw } from "lucide-react";
+import { Button }   from "@/components/ui/button";
+import { Input }    from "@/components/ui/input";
+import { Badge }    from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-// Product management хуудасны жагсаалт, хайлт, delete confirm урсгал.
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [query, setQuery] = useState("");
-  const [deletingId, setDeletingId] = useState(null);
+  const [products,  setProducts]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [query,     setQuery]     = useState("");
+  const [deleting,  setDeleting]  = useState(null);
 
+  // DB-аас бүх бараа татах
+  async function load() {
+    setLoading(true);
+    try {
+      const res  = await fetch("/api/products?limit=200", { credentials: "include" });
+      const data = await res.json();
+      setProducts(data.products ?? []);
+    } finally { setLoading(false); }
+  }
+  useEffect(() => {
+    (async () => {
+      await load();
+    })();
+  }, []);
+
+  // Бараа устгах
+  async function deleteProduct(id) {
+    setDeleting(id);
+    try {
+      await fetch(`/api/products/${id}`, { method: "DELETE", credentials: "include" });
+      setProducts((p) => p.filter((x) => x.id !== id));
+    } finally { setDeleting(null); }
+  }
+
+  // Хайлт
   const filtered = useMemo(() => {
     if (!query.trim()) return products;
     const q = query.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.nameMn.toLowerCase().includes(q) ||
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q),
+    return products.filter((p) =>
+      p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q)
     );
   }, [products, query]);
 
-  function handleDelete(id) {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    setDeletingId(null);
-  }
+  const totalStock = products.reduce((s, p) => s + (p.stock_qty ?? 0), 0);
+  const outOfStock = products.filter((p) => !p.in_stock).length;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      {/* Гарчиг + товчлуурууд */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Бүтээгдэхүүн
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {products.length} бараа нийт
+          <h1 className="text-xl font-bold">Бүтээгдэхүүн</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {products.length} бараа · {outOfStock} дууссан · {totalStock} нийт үлдэгдэл
           </p>
         </div>
-        <Button
-          asChild
-          className="rounded-full gap-2 h-9 text-sm"
-          id="new-product-btn"
-        >
-          <Link href="/admin/products/new">
-            <Plus size={15} />
-            Шинэ бараа нэмэх
-          </Link>
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          id="admin-product-search"
-          placeholder="Бараа хайх..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-9 rounded-xl h-9 text-sm"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground w-14">
-                  Зураг
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground">
-                  Нэр
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground hidden md:table-cell">
-                  Ангилал
-                </th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-muted-foreground">
-                  Үнэ
-                </th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-muted-foreground hidden sm:table-cell">
-                  Байдал
-                </th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-muted-foreground hidden lg:table-cell">
-                  Үнэлгээ
-                </th>
-                <th className="w-12"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Package
-                      size={28}
-                      className="text-muted-foreground mx-auto mb-3 opacity-40"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Бараа олдсонгүй
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((product) => (
-                  <tr
-                    key={product.id}
-                    className="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors"
-                  >
-                    {/* Image */}
-                    <td className="px-5 py-3">
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
-                        <Image
-                          src={product.image}
-                          alt={product.nameMn}
-                          fill
-                          sizes="40px"
-                          className="object-cover"
-                        />
-                      </div>
-                    </td>
-
-                    {/* Name */}
-                    <td className="px-5 py-3">
-                      <p className="font-medium text-foreground text-sm leading-snug">
-                        {product.nameMn}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.name}
-                      </p>
-                    </td>
-
-                    {/* Category */}
-                    <td className="px-5 py-3 hidden md:table-cell">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full text-xs capitalize"
-                      >
-                        {product.category}
-                      </Badge>
-                    </td>
-
-                    {/* Price */}
-                    <td className="px-5 py-3 text-right">
-                      <p className="font-semibold text-foreground">
-                        {product.price.toLocaleString("mn-MN")}₮
-                      </p>
-                      {product.originalPrice && (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString("mn-MN")}₮
-                        </p>
-                      )}
-                    </td>
-
-                    {/* Stock status */}
-                    <td className="px-5 py-3 text-center hidden sm:table-cell">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                          product.inStock
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {product.inStock ? "Байгаа" : "Дууссан"}
-                      </span>
-                    </td>
-
-                    {/* Rating */}
-                    <td className="px-5 py-3 text-center text-sm text-muted-foreground hidden lg:table-cell">
-                      ★ {product.rating} ({product.reviews})
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-3 py-3">
-                      <AlertDialog
-                        open={deletingId === product.id}
-                        onOpenChange={(o) => !o && setDeletingId(null)}
-                      >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 rounded-lg"
-                              aria-label="Үйлдэл"
-                            >
-                              <MoreHorizontal size={15} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="w-36 rounded-xl"
-                          >
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/admin/products/${product.id}/edit`}
-                                className="flex items-center gap-2 cursor-pointer"
-                              >
-                                <Pencil size={13} />
-                                Засах
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/products/${product.slug}`}
-                                target="_blank"
-                                className="flex items-center gap-2 cursor-pointer"
-                              >
-                                ↗ Харах
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive flex items-center gap-2 cursor-pointer"
-                                onSelect={() => setDeletingId(product.id)}
-                              >
-                                <Trash2 size={13} />
-                                Устгах
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <AlertDialogContent className="rounded-2xl">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Устгах уу?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              <strong>{product.nameMn}</strong> барааг устгах
-                              гэж байна. Энэ үйлдлийг буцаах боломжгүй.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="rounded-full">
-                              Болих
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(product.id)}
-                              className="rounded-full bg-destructive text-white hover:bg-destructive/90"
-                            >
-                              Устгах
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="rounded-full" onClick={load} disabled={loading}>
+            <RefreshCw size={13} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> Шинэчлэх
+          </Button>
+          <Button asChild size="sm" className="rounded-full">
+            <Link href="/admin/products/new"><Plus size={14} className="mr-1.5" />Шинэ бараа</Link>
+          </Button>
         </div>
+      </div>
 
-        {/* Table footer */}
-        {filtered.length > 0 && (
-          <div className="px-5 py-3 border-t border-border bg-muted/20 text-xs text-muted-foreground">
-            {filtered.length} / {products.length} бараа харагдаж байна
-          </div>
-        )}
+      {/* Хайлт */}
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Бараа, брэнд, ангилал хайх..." className="pl-9 rounded-full" value={query} onChange={(e) => setQuery(e.target.value)} />
+      </div>
+
+      {/* Хүснэгт */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground uppercase tracking-wide">
+              <th className="text-left px-4 py-3 font-medium">Бараа</th>
+              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Ангилал</th>
+              <th className="text-right px-4 py-3 font-medium">Үнэ</th>
+              <th className="text-center px-4 py-3 font-medium hidden sm:table-cell">Рейтинг</th>
+              <th className="text-center px-4 py-3 font-medium hidden lg:table-cell">Үлдэгдэл</th>
+              <th className="text-center px-4 py-3 font-medium">Статус</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td></tr>
+              ))
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                <Package size={32} className="mx-auto mb-2 opacity-30" />Бараа олдсонгүй
+              </td></tr>
+            ) : filtered.map((p) => (
+              <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                {/* Зураг + нэр */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/40">
+                      {p.image && <Image src={getImageUrl(p.image)} alt={p.name} fill sizes="40px" className="object-cover" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate max-w-[180px]">{p.name_mn ?? p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.brand}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground hidden md:table-cell capitalize">{p.category_mn ?? p.category}</td>
+                <td className="px-4 py-3 text-right font-medium">{Number(p.price).toLocaleString("mn-MN")}₮</td>
+                <td className="px-4 py-3 text-center hidden sm:table-cell">
+                  <span className="text-amber-500">★</span> {Number(p.rating ?? 0).toFixed(1)}
+                  <span className="text-xs text-muted-foreground ml-1">({p.reviews_count ?? 0})</span>
+                </td>
+                <td className="px-4 py-3 text-center hidden lg:table-cell text-muted-foreground">{p.stock_qty ?? "—"}</td>
+                <td className="px-4 py-3 text-center">
+                  <Badge variant={p.in_stock ? "default" : "destructive"} className="text-[10px] px-2 py-0.5">
+                    {p.in_stock ? "Байгаа" : "Дууссан"}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                      <Link href={`/admin/products/${p.id}/edit`}><Pencil size={13} /></Link>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                          <Trash2 size={13} />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Бараа устгах уу?</AlertDialogTitle>
+                          <AlertDialogDescription>&quot;{p.name_mn ?? p.name}&quot; барааг устгах бөгөөд буцаах боломжгүй.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Болих</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteProduct(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleting === p.id}>
+                            {deleting === p.id ? "Устгаж байна..." : "Устгах"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
