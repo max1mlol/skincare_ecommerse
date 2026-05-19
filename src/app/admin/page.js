@@ -1,5 +1,7 @@
+// admin/page.js — Удирдлагын хэсэг: Нийт орлого, захиалгын тоо, сүүлийн үеийн захиалгууд зэрэг статистик мэдээллийг харуулдаг үндсэн хуудас.
+// Энэхүү хуудсанд Recharts сан ашиглан сүүлийн 30 хоногийн орлогын явцыг график хэлбэрээр дүрсэлдэг.
 "use client";
-// admin/page.js — админ самбар: бодит өгөгдлийг Express API-аас авна
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Users, Star, TrendingUp, ArrowUpRight, ArrowDownRight, Package, AlertCircle } from "lucide-react";
@@ -7,7 +9,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Захиалгын статусын өнгө
+// STATUS_COLOR: Захиалгын статусаас хамаарч өөр өөр CSS өнгө зааж өгөх объект
 const STATUS_COLOR = {
   pending:   "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -15,12 +17,14 @@ const STATUS_COLOR = {
   delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
+
+// STATUS_LABEL: Захиалгын статусыг Монгол хэлээр харуулах объект
 const STATUS_LABEL = {
   pending: "Хүлээгдэж буй", confirmed: "Баталгаажсан",
   shipped: "Илгээгдсэн",   delivered: "Хүргэгдсэн", cancelled: "Цуцлагдсан",
 };
 
-// Тоог товч форматаар харуулна (12500 → 12.5K)
+// fmt: Том тоонуудыг хялбарчлан богино форматаар харуулах туслах функц (Жишээ нь: 12500 -> 12.5K)
 function fmt(n) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
@@ -28,16 +32,16 @@ function fmt(n) {
 }
 
 export default function AdminDashboard() {
-  const [stats,   setStats]   = useState(null);
-  const [orders,  setOrders]  = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats,   setStats]   = useState(null); // Нийт статистик үзүүлэлтүүд (KPIs)
+  const [orders,  setOrders]  = useState([]);  // Хамгийн сүүлийн 8 захиалгын жагсаалт
+  const [products, setProducts] = useState([]); // Сэтгэгдлийн тоогоор тэргүүлсэн онцлох 5 бараа
+  const [loading, setLoading] = useState(true); // Ачаалж буй эсэхийг илэрхийлэх төлөв
 
-  // Графикт зориулсан бүх захиалгыг түр хадгалах стэйт
+  // allOrdersData: Сүүлийн 30 хоногийн орлогын графикийг зурахад ашиглагдах нийт захиалгууд
   const [allOrdersData, setAllOrdersData] = useState([]);
 
   useEffect(() => {
-    // Захиалга, бараа, хэрэглэгч — бүгдийг зэрэг авна (Promise.all)
+    // Шаардлагатай бүх өгөгдлийг нэгэн зэрэг татаж авна
     Promise.all([
       fetch("/api/orders",   { credentials: "include" }).then((r) => r.json()),
       fetch("/api/products", { credentials: "include" }).then((r) => r.json()),
@@ -49,8 +53,10 @@ export default function AdminDashboard() {
 
       setAllOrdersData(allOrders);
 
-      // KPI тоонуудыг бодит өгөгдлөөс тооцоолно
+      // 1. Нийт орлогыг тооцоолох (Цуцлагдсан захиалгын дүнг оруулахгүй)
       const revenue  = allOrders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+      
+      // Өмнөх сар болон энэ сарын орлогыг харьцуулж өсөлт бууралтыг олно
       const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
       const lastMonth = new Date(thisMonth); lastMonth.setMonth(lastMonth.getMonth() - 1);
 
@@ -60,10 +66,12 @@ export default function AdminDashboard() {
       const revenueLastMonth = allOrders
         .filter((o) => new Date(o.created_at) >= lastMonth && new Date(o.created_at) < thisMonth && o.status !== "cancelled")
         .reduce((s, o) => s + o.total, 0);
+      
       const revGrowth = revenueLastMonth > 0
         ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth * 100).toFixed(1)
         : 0;
 
+      // KPIs өгөгдлийн стэйтийг шинэчлэх
       setStats({
         revenue:  `${revenue.toLocaleString("mn-MN")}₮`,
         orders:   fmt(allOrders.length),
@@ -74,24 +82,26 @@ export default function AdminDashboard() {
         revUp:    revGrowth >= 0,
       });
 
-      // Сүүлийн 8 захиалга — хуудасны доод хэсэгт харуулна
+      // Хүснэгтэд харуулах сүүлийн 8 захиалга
       setOrders(allOrders.slice(0, 8));
 
-      // Хамгийн олон сэтгэгдэлтэй бараануудыг эхэнд гаргана
+      // Бүтээгдэхүүнийг сэтгэгдлийн тоогоор эрэмбэлж шилдэг 5-ыг авна
       setProducts([...allProducts].sort((a, b) => (b.reviews_count ?? 0) - (a.reviews_count ?? 0)).slice(0, 5));
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  // Сүүлийн 30 хоногийн захиалгын өдөр тус бүрийн дүнг тооцоолно (shadcn Chart-д зориулсан)
+  // chartData: Сүүлийн 30 хоногийн орлогыг өдөр өдрөөр хуваарилж Recharts-д бэлдэх логик
   const chartData = (() => {
     const days = {};
+    // Сүүлийн 30 хоногийн өдрүүдийг хоосон орлоготойгоор үүсгэж бэлдэнэ
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       days[key] = 0;
     }
+    // Нийт орлогыг өдөр өдрийн дүн дээр нэмж хуримтлуулна
     allOrdersData.forEach((o) => {
-      if (o.status === "cancelled") return; // Цуцлагдсан орлогыг хасах
+      if (o.status === "cancelled") return; // Цуцлагдсан захиалгыг хасах
       const d = new Date(o.created_at);
       const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       if (days[key] !== undefined) days[key] += o.total;
@@ -99,6 +109,7 @@ export default function AdminDashboard() {
     return Object.entries(days).map(([date, revenue]) => ({ date, revenue }));
   })();
 
+  // chartConfig: Shadcn UI Chart-ийн тохиргоо (Гарчиг, өнгө)
   const chartConfig = {
     revenue: {
       label: "Орлого (₮)",
@@ -106,6 +117,7 @@ export default function AdminDashboard() {
     },
   };
 
+  // Ачаалж буй үеийн араг яс (Skeleton placeholder)
   if (loading) return (
     <div className="p-6 space-y-4 animate-pulse">
       <div className="h-8 w-48 bg-muted rounded" />
@@ -119,21 +131,21 @@ export default function AdminDashboard() {
     <div className="p-4 md:p-6 space-y-5 max-w-7xl">
       <div>
         <h1 className="text-xl font-bold text-foreground">Самбар</h1>
-        <p className="text-sm text-muted-foreground">Дэлгүүрийн тойм</p>
+        <p className="text-sm text-muted-foreground">Дэлгүүрийн тойм мэдээлэл</p>
       </div>
 
-      {/* Alert for Pending Orders */}
+      {/* Хүлээгдэж буй шинэ захиалгууд байгаа тохиолдолд анхааруулах Alert харуулна */}
       {stats && stats.pendingOrdersCount > 0 && (
         <Alert className="bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
           <AlertCircle className="h-4 w-4 stroke-amber-600 dark:stroke-amber-400" />
-          <AlertTitle>Анхааруулга</AlertTitle>
+          <AlertTitle>Шинэ захиалга</AlertTitle>
           <AlertDescription>
-            Танд хүлээгдэж буй <strong>{stats.pendingOrdersCount}</strong> шинэ захиалга байна. Захиалгын хэсэг рүү орж шалгана уу.
+            Танд хүлээгдэж буй <strong>{stats.pendingOrdersCount}</strong> шинэ захиалга байна. Захиалгын хэсэг рүү орж баталгаажуулна уу.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* KPI карт — бодит тоо */}
+      {/* KPI картнууд: Орлого, Захиалгын тоо, Хэрэглэгчийн тоо, Барааны тоо */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
@@ -160,12 +172,12 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Орлогын график — shadcn chart */}
+      {/* Орлогын график — 30 хоногийн Bar chart */}
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-sm font-semibold">Орлогын тойм</h2>
-            <p className="text-xs text-muted-foreground">Сүүлийн 30 хоног</p>
+            <p className="text-xs text-muted-foreground">Сүүлийн 30 хоногийн орлогын график</p>
           </div>
         </div>
         <div className="h-64">
@@ -180,9 +192,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Сүүлийн захиалга + шилдэг бараа */}
+      {/* Доод хэсэг: Сүүлийн захиалгын хүснэгт болон шилдэг бүтээгдэхүүний жагсаалт */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Захиалгын хүснэгт */}
+        
+        {/* Сүүлийн 8 захиалгын хүснэгт */}
         <div className="lg:col-span-2 bg-card border border-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h2 className="text-sm font-semibold">Сүүлийн захиалгууд</h2>
@@ -222,10 +235,10 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Шилдэг бараа — сэтгэгдлийн тоогоор жагсаасан */}
+        {/* Шилдэг бараанууд (Сэтгэгдлийн тоогоор) */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <h2 className="text-sm font-semibold">Шилдэг бараа</h2>
+            <h2 className="text-sm font-semibold">Онцлох бүтээгдэхүүн</h2>
             <Link href="/admin/products" className="text-xs text-muted-foreground hover:text-foreground">Бүгд →</Link>
           </div>
           {products.length === 0 ? (
