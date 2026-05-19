@@ -1,9 +1,11 @@
 "use client";
+// account/profile/page.js — Хэрэглэгчийн хувийн тохиргооны хуудас.
+// Эндээс хэрэглэгч өөрийн овог, нэр, утасны дугаар, аватар зургаа солих болон нууц үгээ өөрчлөх боломжтой.
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera, User, ShoppingBag, Shield, LogOut } from "lucide-react";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/context/SessionContext"; // Глобал сессийн мэдээлэл болон өгөгдөл шинэчлэх функцийг уншина
 import { Button }    from "@/components/ui/button";
 import { Input }     from "@/components/ui/input";
 import { Label }     from "@/components/ui/label";
@@ -18,15 +20,21 @@ import { getImageUrl } from "@/lib/utils";
 export default function ProfilePage() {
   const { user, loading: authLoading, refetch, logout } = useSession();
   const router = useRouter();
+
+  // form: Хэрэглэгчийн овог нэр, утасны дугаар зэргийг өөрчлөх стэйт
   const [form,    setForm]    = useState({ firstName: "", lastName: "", email: "", phone: "" });
-  const [saving,  setSaving]  = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [msg,     setMsg]     = useState({ type: "", text: "" });
+  const [saving,  setSaving]  = useState(false); // Хадгалалтын явцыг илэрхийлэх төлөв
+  const [isEditing, setIsEditing] = useState(false); // Мэдээлэл засаж буй эсэхийг заах төлөв
+  const [msg,     setMsg]     = useState({ type: "", text: "" }); // Амжилттай эсвэл алдаатай хариуны зурвас
+  // passForm: Нууц үг солих оролтуудыг хадгалах стэйт
   const [passForm, setPassForm] = useState({ current: "", next: "", confirm: "" });
 
   useEffect(() => {
+    // 1. Хэрэв ачаалж дуусаад хэрэглэгч байхгүй бол нэвтрэх хуудас руу шилжүүлнэ
     if (!authLoading && !user) { router.replace("/login"); return; }
+    // 2. Хэрэв админ нэвтэрсэн байвал профайл хуудас биш админ хэсэг рүү шилжүүлнэ
     if (!authLoading && user && user.role === "admin") { router.replace("/admin"); return; }
+    
     if (user) {
       const initForm = async () => {
         setForm({ firstName: user.first_name ?? "", lastName: user.last_name ?? "", email: user.email ?? "", phone: user.phone ?? "" });
@@ -37,6 +45,7 @@ export default function ProfilePage() {
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  // saveProfile: Хувийн мэдээллээ хадгалах функц
   async function saveProfile(e) {
     e.preventDefault();
     setSaving(true); setMsg({ type: "", text: "" });
@@ -49,17 +58,19 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Хадгалахад алдаа гарлаа");
-      await refetch();
+      
+      await refetch(); // Глобал сессийн өгөгдлийг дахин дуудаж шинэчилнэ
       setIsEditing(false);
       setMsg({ type: "ok", text: "Профайл амжилттай шинэчлэгдлээ" });
     } catch (err) { setMsg({ type: "err", text: err.message }); }
     finally { setSaving(false); }
   }
 
+  // changePassword: Нууц үгээ солих функц
   async function changePassword(e) {
     e.preventDefault();
     if (passForm.next !== passForm.confirm) {
-      setMsg({ type: "err", text: "Шинэ нууц үг таарахгүй байна" }); return;
+      setMsg({ type: "err", text: "Шинэ нууц үгүүд зөрж байна" }); return;
     }
     setSaving(true); setMsg({ type: "", text: "" });
     try {
@@ -70,13 +81,15 @@ export default function ProfilePage() {
         body:        JSON.stringify({ currentPassword: passForm.current, newPassword: passForm.next }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Нууц үг солиход алдаа");
+      if (!res.ok) throw new Error(data.error || "Одоогийн нууц үг буруу байна");
+      
       setPassForm({ current: "", next: "", confirm: "" });
       setMsg({ type: "ok", text: "Нууц үг амжилттай солигдлоо" });
     } catch (err) { setMsg({ type: "err", text: err.message }); }
     finally { setSaving(false); }
   }
 
+  // handleAvatarChange: Аватар зургийг сонгонгуут FormData үүсгэж шууд урд талаас сервер лүү илгээнэ
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -84,7 +97,7 @@ export default function ProfilePage() {
     const res = await fetch(`/api/users/${user.id}/avatar`, {
       method: "POST", credentials: "include", body: fd,
     });
-    if (res.ok) { await refetch(); }
+    if (res.ok) { await refetch(); } // Зураг солигдсон тул профайлаа шинэчлэнэ
   }
 
   if (authLoading || !user) return null;
@@ -100,7 +113,8 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row gap-10">
             {/* ── ЗҮҮН САЙДБАР (Sidebar Navigation) ── */}
             <aside className="w-full md:w-64 shrink-0 space-y-6">
-              {/* Хэрэглэгчийн товч мэдээлэл */}
+              
+              {/* Хэрэглэгчийн товч мэдээлэл болон Аватар солих хэсэг */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
                 <div className="relative">
                   <Avatar className="w-12 h-12 border border-border">
@@ -109,7 +123,7 @@ export default function ProfilePage() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <label className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                  <label className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Зураг солих">
                     <Camera size={10} />
                     <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
                   </label>
@@ -120,7 +134,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Цэсүүд */}
+              {/* Навигацийн цэс */}
               <nav className="space-y-1">
                 <Link href="/account/profile" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-foreground text-background transition-colors">
                   <User size={16} /> Хувийн мэдээлэл
@@ -149,6 +163,7 @@ export default function ProfilePage() {
                 <h1 className="text-xl font-bold mb-1">Профайл тохиргоо</h1>
                 <p className="text-sm text-muted-foreground mb-6">Өөрийн хувийн мэдээлэл болон нууц үгээ эндээс удирдах боломжтой.</p>
                 
+                {/* Амжилттай эсвэл алдаатай бол зурвас харуулна */}
                 {msg.text && (
                   <Alert variant={msg.type === "ok" ? "default" : "destructive"} className={`mb-6 ${msg.type === "ok" ? "border-green-200 bg-green-50/50 text-green-700 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-400" : ""}`}>
                     {msg.type === "ok" ? <CheckCircle2 className={`h-4 w-4 ${msg.type === "ok" ? "stroke-green-600 dark:stroke-green-400" : ""}`} /> : <AlertCircle className="h-4 w-4" />}
@@ -156,6 +171,7 @@ export default function ProfilePage() {
                   </Alert>
                 )}
 
+                {/* Ерөнхий мэдээлэл засах форм */}
                 <form onSubmit={saveProfile} className="space-y-5">
                   <div className="flex items-center justify-between border-b border-border pb-2">
                     <h2 className="font-semibold text-sm">Ерөнхий мэдээлэл</h2>
@@ -198,6 +214,7 @@ export default function ProfilePage() {
 
                 <Separator className="my-10" />
 
+                {/* Нууц үг солих форм */}
                 <form onSubmit={changePassword} className="space-y-5">
                   <h2 className="font-semibold text-sm border-b border-border pb-2">Нууц үг шинэчлэх</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

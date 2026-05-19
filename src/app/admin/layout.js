@@ -1,34 +1,16 @@
+// admin/layout.js — Удирдлагын хэсгийн ерөнхий бүтэц (Layout).
+// Админ эрхтэй хэрэглэгчдийг шалгаж, хажуугийн цэс (Sidebar)-ийг харуулж, хуудас хооронд шилжих боломжийг олгоно.
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/context/SessionContext"; // Session контекстоос хэрэглэгчийн мэдээлэл болон гарах функцийг авна
 import { useState, useEffect } from "react";
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Star,
-  Users,
-  Settings,
-  LogOut,
-  ChevronRight,
-} from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Star, Users, Settings, LogOut, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+// Sidebar-д харуулах үндсэн цэсүүд
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 const NAV = [
   { href: "/admin",          label: "Самбар",        icon: LayoutDashboard, exact: true },
@@ -40,17 +22,20 @@ const NAV = [
 ];
 
 export default function AdminLayout({ children }) {
+  // badgeCounts: Захиалга болон Сэтгэгдлийн тоог динамикоор уншиж цэсний хажууд харуулах стэйт
   const [badgeCounts, setBadgeCounts] = useState({ orders: null, reviews: null });
   const { user, loading, logout } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
+  // 1. Хэрэглэгчийн эрх шалгах: Хэрэв нэвтрээгүй эсвэл админ биш бол шууд нэвтрэх хуудас руу шилжүүлнэ
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
       router.replace("/login");
     }
   }, [user, loading, router]);
 
+  // 2. Хүлээгдэж буй захиалга болон уншаагүй сэтгэгдлийн тоог авах
   useEffect(() => {
     if (user && user.role === "admin") {
       Promise.all([
@@ -70,11 +55,14 @@ export default function AdminLayout({ children }) {
     }
   }, [user]);
 
+  // Хэрэв ачаалж байгаа эсвэл админ биш бол юу ч харуулахгүй
   if (loading || !user || user.role !== "admin") return null;
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
+        
+        {/* Толгой хэсэг: Дэлгүүрийн нэр болон Admin Badge */}
         <SidebarHeader className="h-14 flex flex-row items-center justify-between px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <div className="flex items-center gap-2 overflow-hidden group-data-[collapsible=icon]:justify-center">
             <SidebarTrigger className="shrink-0" />
@@ -85,6 +73,7 @@ export default function AdminLayout({ children }) {
           <Badge variant="secondary" className="text-[10px] rounded-full group-data-[collapsible=icon]:hidden">Admin</Badge>
         </SidebarHeader>
 
+        {/* Үндсэн цэсүүдийн жагсаалт */}
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
@@ -121,6 +110,7 @@ export default function AdminLayout({ children }) {
           </SidebarGroup>
         </SidebarContent>
 
+        {/* Доод хэсэг: Гарах болон Дэлгүүр харах товч */}
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -141,7 +131,7 @@ export default function AdminLayout({ children }) {
         </SidebarFooter>
       </Sidebar>
 
-      {/* Main Content */}
+      {/* Гол контент харуулах хэсэг */}
       <main className="flex-1 min-w-0 bg-muted/20 relative flex flex-col h-screen overflow-hidden">
         <header className="h-14 flex items-center px-4 bg-background/80 backdrop-blur border-b border-border z-40 sticky top-0 md:hidden">
           <SidebarTrigger />

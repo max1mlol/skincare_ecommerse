@@ -1,9 +1,9 @@
 "use client";
-// admin/products/page.js — бүтээгдэхүүний удирдлага (API-аас бодит өгөгдөл)
+// admin/products/page.js — Бүтээгдэхүүний удирдлага: Бүх барааны мэдээллийг хүснэгтээр харуулж, устгах, засах, шинээр үүсгэх хуудас руу шилжих хэсэг.
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils"; // Зургийн харьцангуй замыг зөв URL болгон хөрвүүлэх функц
 import { Plus, Search, Pencil, Trash2, Package, RefreshCw } from "lucide-react";
 import { Button }   from "@/components/ui/button";
 import { Input }    from "@/components/ui/input";
@@ -11,12 +11,12 @@ import { Badge }    from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function AdminProductsPage() {
-  const [products,  setProducts]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [query,     setQuery]     = useState("");
-  const [deleting,  setDeleting]  = useState(null);
+  const [products,  setProducts]  = useState([]); // Нийт барааны жагсаалт хадгалах стэйт
+  const [loading,   setLoading]   = useState(true); // Ачаалалтын төлөв
+  const [query,     setQuery]     = useState(""); // Хайлтын талбарын утга
+  const [deleting,  setDeleting]  = useState(null); // Устгагдаж буй барааны ID
 
-  // DB-аас бүх бараа татах
+  // load: Серверээс бүх барааны мэдээллийг татах функц
   async function load() {
     setLoading(true);
     try {
@@ -25,22 +25,24 @@ export default function AdminProductsPage() {
       setProducts(data.products ?? []);
     } finally { setLoading(false); }
   }
+
   useEffect(() => {
     (async () => {
       await load();
     })();
   }, []);
 
-  // Бараа устгах
+  // deleteProduct: Бүтээгдэхүүнийг ID-аар нь устгах функц
   async function deleteProduct(id) {
     setDeleting(id);
     try {
       await fetch(`/api/products/${id}`, { method: "DELETE", credentials: "include" });
+      // Устгасны дараа дэлгэц дээрх жагсаалтаас хасна
       setProducts((p) => p.filter((x) => x.id !== id));
     } finally { setDeleting(null); }
   }
 
-  // Хайлт
+  // filtered: Хэрэглэгчийн бичсэн хайлтын утгаар бараануудыг шүүх логик (useMemo ашиглан оновчтой болгосон)
   const filtered = useMemo(() => {
     if (!query.trim()) return products;
     const q = query.toLowerCase();
@@ -49,12 +51,13 @@ export default function AdminProductsPage() {
     );
   }, [products, query]);
 
-  const totalStock = products.reduce((s, p) => s + (p.stock_qty ?? 0), 0);
-  const outOfStock = products.filter((p) => !p.in_stock).length;
+  // Статистик үзүүлэлтүүд
+  const totalStock = products.reduce((s, p) => s + (p.stock_qty ?? 0), 0); // Нийт үлдэгдэл тоо ширхэг
+  const outOfStock = products.filter((p) => !p.in_stock).length; // Дууссан барааны тоо
 
   return (
     <div className="space-y-6">
-      {/* Гарчиг + товчлуурууд */}
+      {/* Гарчиг болон удирдлагын товчлуурууд */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Бүтээгдэхүүн</h1>
@@ -72,13 +75,13 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Хайлт */}
+      {/* Хайлтын талбар */}
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Бараа, брэнд, ангилал хайх..." className="pl-9 rounded-full" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      {/* Хүснэгт */}
+      {/* Хүснэгт хэсэг */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -103,7 +106,8 @@ export default function AdminProductsPage() {
               </td></tr>
             ) : filtered.map((p) => (
               <tr key={p.id} className="hover:bg-muted/20 transition-colors">
-                {/* Зураг + нэр */}
+                
+                {/* Барааны зураг ба нэр */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/40">
@@ -115,18 +119,30 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                 </td>
+                
+                {/* Ангилал */}
                 <td className="px-4 py-3 text-muted-foreground hidden md:table-cell capitalize">{p.category_mn ?? p.category}</td>
+                
+                {/* Үнэ */}
                 <td className="px-4 py-3 text-right font-medium">{Number(p.price).toLocaleString("mn-MN")}₮</td>
+                
+                {/* Одууд болон сэтгэгдлийн тоо */}
                 <td className="px-4 py-3 text-center hidden sm:table-cell">
                   <span className="text-amber-500">★</span> {Number(p.rating ?? 0).toFixed(1)}
                   <span className="text-xs text-muted-foreground ml-1">({p.reviews_count ?? 0})</span>
                 </td>
+                
+                {/* Үлдэгдэл тоо */}
                 <td className="px-4 py-3 text-center hidden lg:table-cell text-muted-foreground">{p.stock_qty ?? "—"}</td>
+                
+                {/* Нөөцийн статус */}
                 <td className="px-4 py-3 text-center">
                   <Badge variant={p.in_stock ? "default" : "destructive"} className="text-[10px] px-2 py-0.5">
                     {p.in_stock ? "Байгаа" : "Дууссан"}
                   </Badge>
                 </td>
+                
+                {/* Засах болон устгах үйлдэл */}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" asChild>

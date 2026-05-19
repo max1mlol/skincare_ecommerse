@@ -1,7 +1,7 @@
 "use client";
-// admin/users/page.js — хэрэглэгчийн удирдлага (API-аас бодит өгөгдөл)
+// admin/users/page.js — Хэрэглэгчийн удирдлага: Системд бүртгэлтэй бүх хэрэглэгчдийг харах, админ эрх нэмэх/хасах, устгах үйлдлүүдийг гүйцэтгэх хуудас.
 import { useState, useEffect, useMemo } from "react";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/context/SessionContext"; // Сессээс одоо нэвтэрсэн байгаа админы мэдээллийг авч өөрийгөө устгах, эрхээ хасахаас сэргийлнэ
 import { Search, UserCheck, UserX, Shield, Trash2, RefreshCw } from "lucide-react";
 import { Input }  from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const ROLE_LABEL = { admin: "Admin", customer: "Хэрэглэгч" };
 
 export default function AdminUsersPage() {
-  const { user: currentUser } = useSession();
-  const [users,   setUsers]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [query,   setQuery]   = useState("");
+  const { user: currentUser } = useSession(); // Одоо нэвтэрсэн байгаа хэрэглэгч
+  const [users,   setUsers]   = useState([]); // Нийт бүртгэлтэй хэрэглэгчид
+  const [loading, setLoading] = useState(true); // Ачаалалтын төлөв
+  const [query,   setQuery]   = useState(""); // Хайлтын утга
 
+  // load: Серверээс хэрэглэгчдийн жагсаалтыг татах функц
   async function load() {
     setLoading(true);
     try {
@@ -24,13 +25,14 @@ export default function AdminUsersPage() {
       setUsers(data.users ?? []);
     } finally { setLoading(false); }
   }
+
   useEffect(() => {
     (async () => {
       await load();
     })();
   }, []);
 
-  // Хэрэглэгчийн role солих
+  // toggleRole: Хэрэглэгчийн үүргийг (Role) Admin/Customer хооронд солих функц
   async function toggleRole(user) {
     const newRole = user.role === "admin" ? "customer" : "admin";
     await fetch(`/api/users/${user.id}`, {
@@ -39,15 +41,17 @@ export default function AdminUsersPage() {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ role: newRole }),
     });
+    // Стэйтийг шинэчилж дэлгэц дээрх дүрийг өөрчилнө
     setUsers((us) => us.map((u) => u.id === user.id ? { ...u, role: newRole } : u));
   }
 
-  // Хэрэглэгч устгах
+  // deleteUser: Хэрэглэгчийг системээс устгах функц
   async function deleteUser(id) {
     await fetch(`/api/users/${id}`, { method: "DELETE", credentials: "include" });
     setUsers((us) => us.filter((u) => u.id !== id));
   }
 
+  // filtered: Нэр болон имэйлээр шүүж хайх хэсэг
   const filtered = useMemo(() => {
     if (!query.trim()) return users;
     const q = query.toLowerCase();
@@ -59,6 +63,8 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      
+      {/* Толгой хэсэг: Статистик */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Хэрэглэгчид</h1>
@@ -71,11 +77,13 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
+      {/* Хайлт */}
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Хэрэглэгч хайх..." className="pl-9 rounded-full" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
+      {/* Хэрэглэгчдийн хүснэгт */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -96,10 +104,10 @@ export default function AdminUsersPage() {
               <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">Хэрэглэгч олдсонгүй</td></tr>
             ) : filtered.map((u) => (
               <tr key={u.id} className="hover:bg-muted/20 transition-colors">
-                {/* Нэр + имэйл */}
+                
+                {/* Хэрэглэгчийн Нэр + Имэйл болон Аватар хэсэг */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {/* Avatar initials */}
                     <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shrink-0">
                       {u.name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() ?? "U"}
                     </div>
@@ -109,23 +117,31 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 </td>
+                
                 <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{u.phone ?? "—"}</td>
+                
+                {/* Эрх (Role) */}
                 <td className="px-4 py-3 text-center">
                   <Badge variant={u.role === "admin" ? "default" : "secondary"} className="text-[10px] px-2">
                     {u.role === "admin" && <Shield size={9} className="mr-1" />}
                     {ROLE_LABEL[u.role] ?? u.role}
                   </Badge>
                 </td>
+                
                 <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                   {new Date(u.created_at).toLocaleDateString("mn-MN")}
                 </td>
+                
+                {/* Үйлдэл хийх хэсэг */}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    {/* Role toggle */}
+                    
+                    {/* Хэрэглэгчийн эрхийг өөрчлөх (Өөрийнхөө эрхийг өөрчлөх боломжгүй) */}
                     <Button variant="ghost" size="icon" className="h-7 w-7" title={u.role === "admin" ? "Admin эрхийг хасах" : "Admin болгох"} onClick={() => toggleRole(u)} disabled={currentUser?.id === u.id}>
                       {u.role === "admin" ? <UserX size={13} /> : <UserCheck size={13} />}
                     </Button>
-                    {/* Устгах */}
+                    
+                    {/* Устгах (Өөрийгөө устгах боломжгүй) */}
                     {currentUser?.id === u.id ? (
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-50 cursor-not-allowed" disabled>
                         <Trash2 size={13} />
