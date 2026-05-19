@@ -1,27 +1,31 @@
 'use strict';
-// db.js — PostgreSQL connection pool
-// Neon (cloud) болон локал Homebrew postgres хоёуланг автоматаар таньдаг.
-// sslmode=require байвал (Neon URL) SSL-ийг идэвхжүүлнэ.
+// db.js: Өгөгдлийн сангийн холболтын тохиргоо (PostgreSQL Connection Pool).
+// Энэхүү файл нь Neon (үүлэн өгөгдлийн сан) эсвэл локал машин дээрх PostgreSQL рүү холбогдох Pool-ийг үүсгэж удирдах бөгөөд SSL горимыг автоматаар илрүүлнэ.
 const { Pool } = require('pg');
 
+// Neon өгөгдлийн сан мөн эсэх болон SSL шаардлагатай эсэхийг илрүүлэх логик
 const isNeon = (process.env.DATABASE_URL ?? '').includes('neon.tech');
 const isCloud = isNeon || process.env.DATABASE_URL?.includes('sslmode=require');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Neon / cloud DB: SSL шаардлагатай. Локал Homebrew: SSL хэрэггүй.
+  // Үүлэн (Neon) санд холбогдоход SSL ашиглаж, локал сан ашиглах үед SSL шаардахгүй
   ssl: isCloud ? { rejectUnauthorized: false } : false,
-  max:                     isCloud ? 5 : 20, // Neon-д connection хязгаарлагдмал
-  idleTimeoutMillis:       30_000,
-  connectionTimeoutMillis: 5_000,
+  max:                     isCloud ? 5 : 20, // Үүлэн сангийн холболтын тоог хязгаарлах (Neon холболтын дээд хязгаартай)
+  idleTimeoutMillis:       30_000,           // Холболт сул (идэвхгүй) байж болох дээд хугацаа (миллисекунд)
+  connectionTimeoutMillis: 5_000,            // Шинэ холболт үүсгэхэд хүлээх дээд хугацаа
 });
 
+// Өгөгдлийн сантай амжилттай холбогдоход консол дээр мэдээлэл хэвлэх
 pool.on('connect', () => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`[DB] Connected → ${isCloud ? 'Cloud (Neon)' : 'Local PostgreSQL'}`);
   }
 });
+
+// Холболтын явцад гарсан алдааг бүртгэх
 pool.on('error', (err) => { console.error('[DB] Pool error:', err.message); });
 
+// query: Express route-ууд дээр SQL хүсэлт ажиллуулах хялбаршуулсан wrapper функц
 const query = (text, params) => pool.query(text, params);
 module.exports = { pool, query };

@@ -1,5 +1,6 @@
 "use client";
-// Navbar — sticky header: лого, цэс, хайлт, сагс, theme toggle, хэрэглэгчийн avatar dropdown
+// Navbar: Вэбсайтын толгой хэсэг (Header).
+// Энд лого, ангилал бүхий унждаг цэс, брэндүүдийн шүүлтүүр, ухаалаг хайлт, сагсны тоолуур, гэрэлт/харанхуй горим солигч болон хэрэглэгчийн профайл цэс агуулагдана.
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ShoppingBag, Menu, X, Sparkles, Tag, Package, Star, LogOut, Settings, ClipboardList, ShieldCheck, ChevronDown } from "lucide-react";
@@ -13,6 +14,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+
+// Вэбсайтын үндсэн бүтээгдэхүүний ангилалууд
 const CATEGORIES = [
   { href: "/products?cat=serum",       label: "Сэрум",             desc: "Тэжээлт, гэрэлтүүлэгч" },
   { href: "/products?cat=moisturizer", label: "Чийгшүүлэгч",      desc: "Өдөр, шөнийн крем" },
@@ -22,6 +25,7 @@ const CATEGORIES = [
   { href: "/products?cat=suncare",     label: "Нарнаас хамгаалах", desc: "SPF50+, PA++++" },
 ];
 
+// Вэбсайтад борлуулагддаг онцлох брэндүүд
 const BRANDS = [
   { href: "/products?brand=COSRX",          label: "COSRX",          origin: "Солонгос" },
   { href: "/products?brand=LANEIGE",        label: "LANEIGE",        origin: "Солонгос" },
@@ -33,12 +37,12 @@ const BRANDS = [
   { href: "/products?brand=innisfree",      label: "innisfree",      origin: "Солонгос" },
 ];
 
-// Нэрийн эхний үсгүүдийг авна (Батаа Болд → BB)
+// getInitials: Хэрэглэгчийн нэрийн эхний үсгүүдийг авахад ашиглана (Жишээ нь: "Батаа Болд" -> "BB")
 function getInitials(name = "") {
   return name.trim().split(/\s+/).map((n) => n[0]).slice(0, 2).join("").toUpperCase() || "U";
 }
 
-// Avatar circle — зураг байвал харуулна, эсвэл initials
+// AvatarCircle: Хэрэглэгчийн аватар зураг байвал харуулж, байхгүй бол нэрнийх нь эхний үсгүүдийг харуулна
 function AvatarCircle({ user, size = 32 }) {
   const initials = getInitials(user?.name);
   return (
@@ -51,14 +55,14 @@ function AvatarCircle({ user, size = 32 }) {
   );
 }
 
-// Desktop profile dropdown — shadcn DropdownMenu
+// ProfileDropdown: Компьютерийн дэлгэцэнд харагдах профайл цэсний dropdown
 function ProfileDropdown() {
   const { user, loading, logout } = useSession();
 
-  // Loading skeleton
+  // Сесс ачаалж байх үеийн араг яс (Skeleton) харагдац
   if (loading) return <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />;
 
-  // Нэвтрээгүй хэрэглэгч
+  // Нэвтрээгүй хэрэглэгчид харагдах нэвтрэх, бүртгүүлэх товчлуурууд
   if (!user) return (
     <div className="hidden sm:flex items-center gap-1">
       <Button variant="ghost" size="sm" asChild className="h-8 px-3 text-sm text-foreground/70">
@@ -134,10 +138,11 @@ function ProfileDropdown() {
 export default function Navbar() {
   const { totalItems }              = useCart();
   const { user, loading, logout }   = useSession();
-  const [scrolled, setScrolled]     = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled]     = useState(false); // Дэлгэц доош гүйлгэсэн эсэхийг тодорхойлно (Сүүдэр харуулах)
+  const [mobileOpen, setMobileOpen] = useState(false); // Гар утасны хажуугийн цэс нээлттэй эсэх
 
   useEffect(() => {
+    // Хэрэглэгч хуудсыг доош гүйлгэхэд Navbar-т сүүдэр болон хүрээ нэмэх логик
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -221,6 +226,7 @@ export default function Navbar() {
             </NavigationMenu>
           </div>
 
+          {/* Глобал хайлтын талбарыг дуудах товчлуур */}
           <div className="flex-1"><SearchTrigger /></div>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -237,10 +243,10 @@ export default function Navbar() {
             </Button>
             <ThemeToggle />
             <div className="w-px h-4 bg-border hidden sm:block mx-1"></div>
-            {/* Avatar dropdown */}
+            {/* Хэрэглэгчийн цэсний dropdown */}
             <ProfileDropdown />
 
-            {/* Mobile Menu */}
+            {/* Гар утасны цэс */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" aria-label="Цэс нээх">
@@ -252,7 +258,7 @@ export default function Navbar() {
                   <SheetTitle className="text-sm font-bold tracking-tight">AURA SKIN</SheetTitle>
                 </SheetHeader>
 
-                {/* Mobile: нэвтэрсэн хэрэглэгчийн мэдээлэл */}
+                {/* Гар утсан дээр нэвтэрсэн хэрэглэгчийн товч мэдээллийг харуулах */}
                 {user && (
                   <div className="flex items-center gap-3 px-5 py-4 border-b bg-muted/30">
                     <AvatarCircle user={user} size={38} />
@@ -263,6 +269,7 @@ export default function Navbar() {
                   </div>
                 )}
 
+                {/* Гар утасны цэсний холбоосууд */}
                 <nav className="flex flex-col px-3 py-4 gap-0.5 flex-1 overflow-y-auto">
                   {[
                     { href: "/products",              label: "Бүх бүтээгдэхүүн" },
@@ -297,7 +304,7 @@ export default function Navbar() {
                   )}
                 </nav>
 
-                {/* Mobile: нэвтрэх / гарах */}
+                {/* Гар утасны доод хэсэгт нэвтрэх эсвэл гарах товчийг харуулах */}
                 <div className="px-4 pb-6 pt-4 flex flex-col gap-2 border-t shrink-0">
                   {user ? (
                     <Button variant="outline" className="w-full h-9 rounded-full text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/20"

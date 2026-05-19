@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera, User, ShoppingBag, Shield, LogOut } from "lucide-react";
-import { useSession } from "@/context/SessionContext"; // Глобал сессийн мэдээлэл болон өгөгдөл шинэчлэх функцийг уншина
+import { useSession } from "@/context/SessionContext"; // Глобал Session мэдээлэл болон өгөгдөл шинэчлэх функцийг уншина
 import { Button }    from "@/components/ui/button";
 import { Input }     from "@/components/ui/input";
 import { Label }     from "@/components/ui/label";
@@ -21,13 +21,12 @@ export default function ProfilePage() {
   const { user, loading: authLoading, refetch, logout } = useSession();
   const router = useRouter();
 
-  // form: Хэрэглэгчийн овог нэр, утасны дугаар зэргийг өөрчлөх стэйт
+  // form: Хэрэглэгчийн овог нэр, утасны дугаар зэргийг өөрчлөх state
   const [form,    setForm]    = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [saving,  setSaving]  = useState(false); // Хадгалалтын явцыг илэрхийлэх төлөв
   const [isEditing, setIsEditing] = useState(false); // Мэдээлэл засаж буй эсэхийг заах төлөв
   const [msg,     setMsg]     = useState({ type: "", text: "" }); // Амжилттай эсвэл алдаатай хариуны зурвас
-  // passForm: Нууц үг солих оролтуудыг хадгалах стэйт
-  const [passForm, setPassForm] = useState({ current: "", next: "", confirm: "" });
+  const [passForm, setPassForm] = useState({ current: "", next: "", confirm: "" });  // passForm: Нууц үг солих оролтуудыг хадгалах state
 
   useEffect(() => {
     // 1. Хэрэв ачаалж дуусаад хэрэглэгч байхгүй бол нэвтрэх хуудас руу шилжүүлнэ
@@ -59,7 +58,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Хадгалахад алдаа гарлаа");
       
-      await refetch(); // Глобал сессийн өгөгдлийг дахин дуудаж шинэчилнэ
+      await refetch(); // Глобал session өгөгдлийг дахин дуудаж шинэчилнэ
       setIsEditing(false);
       setMsg({ type: "ok", text: "Профайл амжилттай шинэчлэгдлээ" });
     } catch (err) { setMsg({ type: "err", text: err.message }); }
@@ -70,7 +69,7 @@ export default function ProfilePage() {
   async function changePassword(e) {
     e.preventDefault();
     if (passForm.next !== passForm.confirm) {
-      setMsg({ type: "err", text: "Шинэ нууц үгүүд зөрж байна" }); return;
+      setMsg({ type: "err", text: "Шинэ нууц үг таарахгүй байна" }); return;
     }
     setSaving(true); setMsg({ type: "", text: "" });
     try {
@@ -89,7 +88,7 @@ export default function ProfilePage() {
     finally { setSaving(false); }
   }
 
-  // handleAvatarChange: Аватар зургийг сонгонгуут FormData үүсгэж шууд урд талаас сервер лүү илгээнэ
+  // Avatar зургийг сонгонгуут FormData үүсгэж сервер лүү илгээх функц
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -134,7 +133,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Навигацийн цэс */}
+              {/* Navigation menu */}
               <nav className="space-y-1">
                 <Link href="/account/profile" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-foreground text-background transition-colors">
                   <User size={16} /> Хувийн мэдээлэл

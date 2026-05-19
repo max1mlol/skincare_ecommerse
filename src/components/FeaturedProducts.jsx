@@ -1,22 +1,24 @@
 "use client";
+// FeaturedProducts: Нүүр хуудас дээрх онцлох бүтээгдэхүүнүүдийг харуулах хэсэг.
+// Энд хамгийн их борлуулалттай буюу шинээр нэмэгдсэн шилдэг 8 бүтээгдэхүүнийг серверээс дуудаж харуулна.
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ProductCard from "./ProductCard";
 
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]); // Онцлох бараануудын жагсаалт
+  const [loading, setLoading] = useState(true); // Ачаалалтын төлөв
 
   useEffect(() => {
-    // Бодит API-аас шилдэг 8 барааг татах (жишээ нь хамгийн шинэ)
+    // API-аас хамгийн шинэ 8 бүтээгдэхүүнийг татах хүсэлт
     fetch("/api/products?limit=8&sort=newest")
       .then(res => {
         if (!res.ok) throw new Error("API холбогдож чадсангүй");
         return res.json();
       })
       .then(d => {
-        // DB key-үүдийг ProductCard-д тохируулах
+        // Өгөгдлийн сангийн snake_case талбаруудыг ProductCard-ын хүлээж авах camelCase талбаруудтай тааруулж зураглах (Map хийх)
         const mapped = (d.products || []).map(p => ({
           ...p,
           nameMn: p.name_mn || p.name,
@@ -35,7 +37,7 @@ export default function FeaturedProducts() {
   }, []);
 
   if (loading) {
-    return <div className="py-20 text-center text-sm text-muted-foreground bg-muted/50">Онцлох бараа уншиж байна...</div>;
+    return <div className="py-20 text-center text-sm text-muted-foreground bg-muted/50 animate-pulse">Онцлох бараа уншиж байна...</div>;
   }
 
   return (
@@ -46,8 +48,8 @@ export default function FeaturedProducts() {
             <p className="text-xs tracking-[0.4em] uppercase text-muted-foreground mb-3">
               Онцлох бараа
             </p>
-            <h2 id="products-heading" className="text-4xl md:text-5xl text-foreground">
-              Хамгийн их <em className="italic">борлуулагддаг</em>
+            <h2 id="products-heading" className="text-4xl md:text-5xl text-foreground font-semibold">
+              Хамгийн их <em className="italic font-normal">борлуулагддаг</em>
             </h2>
           </div>
           <Link
@@ -60,6 +62,7 @@ export default function FeaturedProducts() {
           </Link>
         </div>
 
+        {/* 8 бүтээгдэхүүнийг 4 баганаар харуулах */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-stretch">
           {products.map((product, i) => (
             <ProductCard key={product.id} product={product} priority={i < 4} />

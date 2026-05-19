@@ -1,12 +1,12 @@
 'use strict';
-// orders.js — захиалгын CRUD route-ууд
-// Admin: бүх захиалга харна, статус өөрчилнэ. User: зөвхөн өөрийнхөө.
+// orders.js: Захиалгын CRUD үйлдлүүд (чиглүүлэгч).
+// Энэхүү файл нь хэрэглэгчийн захиалга үүсгэх, өөрийн захиалгыг харах, админ бүх захиалгыг хянах, захиалгын статус шинэчлэх замуудыг тодорхойлно.
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { query: db }              = require('../config/db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 
-// GET /api/orders — Admin: бүгдийг, User: өөрийнхийг л харна
+// GET /api/orders: Захиалгын түүхийг авах. Админ хэрэглэгч бүх захиалгыг, жирийн хэрэглэгч зөвхөн өөрийн захиалгыг харна.
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const isAdmin  = req.session.role === 'admin';
@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/orders/count — Admin: хүлээгдэж буй захиалгын тоо
+// GET /api/orders/count: Шинээр хүлээгдэж буй (pending) захиалгуудын нийт тоог авах (Зөвхөн админ)
 router.get('/count', requireAdmin, async (req, res, next) => {
   try {
     const { rows } = await db("SELECT COUNT(*) FROM orders WHERE status='pending'");
@@ -28,7 +28,7 @@ router.get('/count', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/orders/:id — эзэмшигч эсвэл admin л харж болно
+// GET /api/orders/:id: Тодорхой нэг захиалгын дэлгэрэнгүйг авах (Зөвхөн тухайн захиалгыг үүсгэсэн хэрэглэгч эсвэл админ хандах эрхтэй)
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await db('SELECT * FROM orders WHERE id = $1', [req.params.id]);
@@ -40,9 +40,9 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/orders — checkout дуусахад үүсдэг захиалга
+// POST /api/orders: Шинээр захиалга үүсгэх хаяг
 router.post('/', requireAuth, [
-  body('items').isArray({ min: 1 }).withMessage('Бараа шаардлагатай'),
+  body('items').isArray({ min: 1 }).withMessage('Барааны жагсаалт хоосон байна'),
   body('items.*.productId').notEmpty(),
   body('items.*.qty').isInt({ min: 1 }),
   body('items.*.price').isInt({ min: 0 }),
@@ -54,9 +54,9 @@ router.post('/', requireAuth, [
 
     const { items, address, deliveryMethod, shippingFee } = req.body;
 
-    // 🔴 АЮУЛГҮЙ БАЙДЛЫН ЗАСВАР (SECURITY FIX):
-    // Frontend-ээс ирсэн total болон price-ийг шууд итгэж болохгүй! Хэрэглэгч үнээ өөрчилж явуулсан байж болзошгүй.
-    // Тиймээс Database-ээс барааны бодит үнийг шалгаж нийт дүнг тооцоолно.
+    // АЮУЛГҮЙ БАЙДЛЫН ШАЛГАЛТ (Price Manipulation Protection):
+    // Хэрэглэгч вэб дээрээс захиалгын үнийг өөрчилж хуурамчаар илгээхээс сэргийлж,
+    // хүлээн авсан барааны ID бүрээр DB-ээс бодит үнийг шүүж нийт дүнг сервер талд дахин тооцоолно.
     const productIds = items.map(i => i.productId);
     const { rows: dbProducts } = await db('SELECT id, price FROM products WHERE id = ANY($1::int[])', [productIds]);
 
@@ -67,13 +67,13 @@ router.post('/', requireAuth, [
       
       const realPrice = dbProd.price;
       calculatedTotal += realPrice * item.qty;
-      return { ...item, price: realPrice }; // Барааны үнийг DB-ийн үнээр дарж бичнэ
+      return { ...item, price: realPrice }; // Барааны үнийг DB дэх бодит үнээр сольж дарж бичнэ
     });
 
     const safeShippingFee = Number(shippingFee) || 0;
-    calculatedTotal += safeShippingFee;
+    calculatedTotal += safeShippingFee; // Хүргэлтийн төлбөрийг нэмнэ
 
-    // Захиалгын дугаар дараалсан байдлаар үүснэ (AUR-0001, AUR-0002, ...)
+    // Захиалгын дугаарыг AUR-0001 хэлбэртэй автоматаар дарааллуулан үүсгэх логик
     const { rows: [{ count }] } = await db('SELECT COUNT(*) FROM orders');
     const orderNumber = `AUR-${String(parseInt(count) + 1).padStart(4, '0')}`;
 
@@ -95,7 +95,7 @@ router.post('/', requireAuth, [
   } catch (err) { next(err); }
 });
 
-// PATCH /api/orders/:id/status — Admin: захиалгын статус өөрчлөх
+// PATCH /api/orders/:id/status: Захиалгын төлөвийг (статус) өөрчлөх хаяг (Зөвхөн админ)
 router.patch('/:id/status', requireAdmin, [
   body('status').isIn(['pending','confirmed','shipped','delivered','cancelled']),
 ], async (req, res, next) => {
@@ -111,7 +111,7 @@ router.patch('/:id/status', requireAdmin, [
   } catch (err) { next(err); }
 });
 
-// DELETE /api/orders/:id — Admin only
+// DELETE /api/orders/:id: Захиалгыг өгөгдлийн сангаас устгах хаяг (Зөвхөн админ)
 router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const { rowCount } = await db('DELETE FROM orders WHERE id=$1', [req.params.id]);

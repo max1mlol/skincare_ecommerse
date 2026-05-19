@@ -1,4 +1,6 @@
 "use client";
+// account/orders/page.js: Хэрэглэгчийн өөрийн захиалгын түүхийг харах хуудас.
+// Эндээс хэрэглэгч өөрийн хийсэн захиалгуудын статус, үнийн дүн, огноо зэргийг хянах боломжтой.
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +10,7 @@ import Navbar  from "@/components/Navbar";
 import Footer  from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+// Захиалгын статусаас хамаарч өөр өөр өнгөөр харуулах зураглал
 const STATUS_COLOR = {
   pending:   "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -15,21 +18,30 @@ const STATUS_COLOR = {
   delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
+
+// Англи статусуудыг Монгол хэл рүү хөрвүүлэх зураглал
 const STATUS_MN = {
-  pending:"Хүлээгдэж буй", confirmed:"Баталгаажсан",
-  shipped:"Илгээгдсэн",    delivered:"Хүргэгдсэн", cancelled:"Цуцлагдсан",
+  pending:   "Хүлээгдэж буй",
+  confirmed: "Баталгаажсан",
+  shipped:   "Илгээгдсэн",
+  delivered: "Хүргэгдсэн",
+  cancelled: "Цуцлагдсан",
 };
 
 export default function MyOrdersPage() {
   const { user, loading: authLoading, logout, refetch } = useSession();
   const router   = useRouter();
-  const [orders,  setOrders]  = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,  setOrders]  = useState([]); // Захиалгуудын жагсаалт
+  const [loading, setLoading] = useState(true); // Ачаалалтын төлөв
 
   useEffect(() => {
+    // Хэрэглэгч нэвтрээгүй бол нэвтрэх хуудас руу шилжүүлнэ
     if (!authLoading && !user) { router.replace("/login"); return; }
+    // Админ хэрэглэгч байвал админ самбар руу шилжүүлнэ
     if (!authLoading && user && user.role === "admin") { router.replace("/admin"); return; }
     if (!user) return;
+
+    // Тухайн хэрэглэгчийн захиалгуудыг серверээс татах
     fetch("/api/orders", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setOrders(d.orders ?? []))
@@ -37,6 +49,7 @@ export default function MyOrdersPage() {
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 
+  // handleAvatarChange: Аватар зургийг сонгоход FormData үүсгэж сервер лүү илгээх функц
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -44,11 +57,12 @@ export default function MyOrdersPage() {
     const res = await fetch(`/api/users/${user?.id}/avatar`, {
       method: "POST", credentials: "include", body: fd,
     });
-    if (res.ok) { await refetch(); }
+    if (res.ok) { await refetch(); } // Зураг амжилттай солигдвол сессийг шинэчилнэ
   }
 
   if (authLoading || !user) return null;
 
+  // Хэрэглэгчийн нэрний эхний үсгүүдийг аватар дээр харуулах зорилгоор бэлдэх
   const initials = user.name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() ?? "U";
 
   return (
@@ -58,7 +72,7 @@ export default function MyOrdersPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="flex flex-col md:flex-row gap-10">
-            {/* ── ЗҮҮН САЙДБАР (Sidebar Navigation) ── */}
+            {/* ЗҮҮН САЙДБАР (Sidebar Navigation) */}
             <aside className="w-full md:w-64 shrink-0 space-y-6">
               {/* Хэрэглэгчийн товч мэдээлэл */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
@@ -102,7 +116,7 @@ export default function MyOrdersPage() {
               </nav>
             </aside>
 
-            {/* ── БАРУУН АГУУЛГА (Main Content) ── */}
+            {/* БАРУУН АГУУЛГА (Main Content) */}
             <div className="flex-1 space-y-6">
               
               <div className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-sm min-h-[400px]">
@@ -110,10 +124,12 @@ export default function MyOrdersPage() {
                 <p className="text-sm text-muted-foreground mb-6">Таны хийсэн бүх захиалгын түүх.</p>
                 
                 {loading ? (
+                  // Ачаалж буй үеийн араг яс (Skeleton) харуулах
                   <div className="space-y-3 mt-8">
                     {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted/50 animate-pulse rounded-xl" />)}
                   </div>
                 ) : orders.length === 0 ? (
+                  // Захиалга байхгүй үеийн зураглал
                   <div className="text-center py-20 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl">
                     <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
                       <Package size={32} className="text-muted-foreground opacity-50" />
@@ -124,6 +140,7 @@ export default function MyOrdersPage() {
                     </Link>
                   </div>
                 ) : (
+                  // Захиалгын жагсаалт
                   <div className="space-y-3">
                     {orders.map((o) => {
                       const itemCount = Array.isArray(o.items) ? o.items.length : 0;

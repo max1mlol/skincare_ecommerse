@@ -1,7 +1,7 @@
 "use client";
 // admin/users/page.js — Хэрэглэгчийн удирдлага: Системд бүртгэлтэй бүх хэрэглэгчдийг харах, админ эрх нэмэх/хасах, устгах үйлдлүүдийг гүйцэтгэх хуудас.
 import { useState, useEffect, useMemo } from "react";
-import { useSession } from "@/context/SessionContext"; // Сессээс одоо нэвтэрсэн байгаа админы мэдээллийг авч өөрийгөө устгах, эрхээ хасахаас сэргийлнэ
+import { useSession } from "@/context/SessionContext"; // Session одоо нэвтэрсэн байгаа админы мэдээллийг авч өөрийгөө устгах, эрхээ хасахаас сэргийлнэ
 import { Search, UserCheck, UserX, Shield, Trash2, RefreshCw } from "lucide-react";
 import { Input }  from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,17 +41,17 @@ export default function AdminUsersPage() {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ role: newRole }),
     });
-    // Стэйтийг шинэчилж дэлгэц дээрх дүрийг өөрчилнө
+    // State-г шинэчилж UI-ийг өөрчилнө
     setUsers((us) => us.map((u) => u.id === user.id ? { ...u, role: newRole } : u));
   }
 
-  // deleteUser: Хэрэглэгчийг системээс устгах функц
+  // Хэрэглэгчийг устгах функц
   async function deleteUser(id) {
     await fetch(`/api/users/${id}`, { method: "DELETE", credentials: "include" });
     setUsers((us) => us.filter((u) => u.id !== id));
   }
 
-  // filtered: Нэр болон имэйлээр шүүж хайх хэсэг
+  // Нэр болон имэйлээр шүүж хайх хэсэг
   const filtered = useMemo(() => {
     if (!query.trim()) return users;
     const q = query.toLowerCase();

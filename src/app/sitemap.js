@@ -1,8 +1,11 @@
 import { PRODUCTS } from '@/lib/products';
 
+// Вэбсайтын үндсэн хаяг (Домэйн)
 const BASE = 'https://auraskin.mn';
 
+// sitemap: Хайлтын системүүдэд (Google, Bing гэх мэт) вэбсайтын бүтцийг таниулах sitemap.xml үүсгэх функц.
 export default function sitemap() {
+  // Статик хуудсуудын жагсаалт
   const staticPages = [
     { url: BASE,           lastModified: new Date(), changeFrequency: 'weekly',  priority: 1 },
     { url: `${BASE}/products`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
@@ -11,6 +14,7 @@ export default function sitemap() {
     { url: `${BASE}/register`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
   ];
 
+  // Бүтээгдэхүүний динамик хуудсуудыг slug-аар нь үүсгэн нэмэх
   const productPages = PRODUCTS.map((p) => ({
     url:             `${BASE}/products/${p.slug}`,
     lastModified:    new Date(),
@@ -18,5 +22,6 @@ export default function sitemap() {
     priority:        0.8,
   }));
 
+  // Статик болон динамик хуудсуудын холбоосыг нэгтгэж буцаана
   return [...staticPages, ...productPages];
 }

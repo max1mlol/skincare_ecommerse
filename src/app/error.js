@@ -1,12 +1,13 @@
 "use client";
-
+// error.js: Глобал алдааны boundary.
+// Энэ хуудас нь вэбсайтын алдааг хэрэглэгчид мэдээлэх, дахин ачааллах боломж олгоно.
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
-    // Бодит төсөл дээр алдааг Sentry зэрэг систем рүү илгээж болно
+    // Алдааны мэдээллийг хөгжүүлэгчийн консол дээр хэвлэх (Бодит төсөлд Sentry руу илгээж болно)
     console.error("Global Error Boundary caught:", error);
   }, [error]);
 
@@ -18,6 +19,7 @@ export default function GlobalError({ error, reset }) {
         Ямар нэгэн санаандгүй алдаа гарсан байна. Та хуудсыг дахин ачааллана уу эсвэл хэсэг хугацааны дараа дахин оролдоно уу.
       </p>
       <div className="flex items-center gap-4">
+        {/* reset() функц нь алдаа гарсан хуудсыг дахин зураглах (re-render) оролдлого хийнэ */}
         <Button onClick={() => reset()} variant="default">
           Дахин оролдох
         </Button>
