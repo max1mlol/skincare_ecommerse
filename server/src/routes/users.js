@@ -1,5 +1,6 @@
 'use strict';
-// users.js — хэрэглэгчийн профайл, avatar, нууц үг солих route-ууд
+// users.js: Хэрэглэгчийн мэдээлэл засах, аватар зураг хуулах, нууц үг солих API замууд (чиглүүлэгч).
+// Энэхүү файл нь хэрэглэгчдийн профайлын өгөгдлийг удирдах, зураг хуулах (Multer) болон админ хэрэглэгчдийг удирдах замуудыг тодорхойлно.
 const path   = require('node:path');
 const router = require('express').Router();
 const crypto = require('node:crypto');
@@ -9,21 +10,22 @@ const { body, validationResult }   = require('express-validator');
 const { query: db }                = require('../config/db');
 const { requireAuth, requireAdmin, requireOwnerOrAdmin } = require('../middleware/auth');
 
-// Multer: avatar upload — 2MB хязгаар, зөвхөн зураг
+// Multer тохиргоо: Хэрэглэгчийн аватар зургийг 'uploads/avatars/' хавтаст хадгална. Хэмжээ нь хамгийн ихдээ 2MB байна.
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '../../uploads/avatars'),
   filename:    (req, file, cb) => cb(null, `${req.session.userId}-${Date.now()}${path.extname(file.originalname).toLowerCase()}`),
 });
 const upload = multer({
   storage,
-  limits:     { fileSize: 2 * 1024 * 1024 },
+  limits:     { fileSize: 2 * 1024 * 1024 }, // 2MB хязгаарлалт
   fileFilter: (_req, file, cb) => {
+    // Зөвхөн зураг (JPEG, PNG, WebP) зөвшөөрөх шүүлтүүр
     if (/image\/(jpeg|png|webp)/.test(file.mimetype)) return cb(null, true);
-    cb(new Error('Зөвхөн JPEG, PNG, WebP зураг оруулна уу'));
+    cb(new Error('Зөвхөн JPEG, PNG, WebP форматтай зураг оруулна уу'));
   },
 });
 
-// GET /api/users — Admin: бүх хэрэглэгчийн жагсаалт
+// GET /api/users: Нийт хэрэглэгчдийн жагсаалтыг авах хаяг (Зөвхөн админ)
 router.get('/', requireAdmin, async (req, res, next) => {
   try {
     const { rows } = await db(
@@ -34,7 +36,7 @@ router.get('/', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/users/:id — өөрийн эсвэл admin л харна
+// GET /api/users/:id: Хэрэглэгчийн мэдээллийг ID-аар унших (Зөвхөн өөрийн профайл эсвэл админ унших эрхтэй)
 router.get('/:id', requireAuth, requireOwnerOrAdmin('id'), async (req, res, next) => {
   try {
     const { rows } = await db(
@@ -48,6 +50,7 @@ router.get('/:id', requireAuth, requireOwnerOrAdmin('id'), async (req, res, next
   } catch (err) { next(err); }
 });
 
+// PATCH /api/users/:id: Хэрэглэгчийн хувийн мэдээллийг (нэр, утас гэх мэт) шинэчлэх хаяг
 router.patch('/:id', requireAuth, requireOwnerOrAdmin('id'), [
   body('firstName').optional().trim().notEmpty().withMessage('Нэр хоосон байж болохгүй'),
   body('lastName').optional().trim().notEmpty().withMessage('Овог хоосон байж болохгүй'),
@@ -57,17 +60,18 @@ router.patch('/:id', requireAuth, requireOwnerOrAdmin('id'), [
     const errs = validationResult(req);
     if (!errs.isEmpty()) return res.status(400).json({ errors: errs.array() });
     
-    // Convert camelCase keys to snake_case for DB
+    // Оролтын camelCase түлхүүр үгсийг өгөгдлийн сангийн snake_case бүтцэд нийцүүлэн хөрвүүлнэ
     if (req.body.firstName) req.body.first_name = req.body.firstName;
     if (req.body.lastName) req.body.last_name = req.body.lastName;
 
     const isAdmin = req.session?.role === 'admin';
+    // Жирийн хэрэглэгч зөвхөн нэр, утасаа солих эрхтэй бол админ хэрэглэгчийн үүргийг (role) мөн солих боломжтой
     const allowed = isAdmin ? ['first_name', 'last_name', 'phone', 'role'] : ['first_name', 'last_name', 'phone'];
     const sets = []; const vals = []; let n = 1;
     for (const k of allowed) {
       if (req.body[k] !== undefined) { sets.push(`${k}=$${n++}`); vals.push(req.body[k]); }
     }
-    if (!sets.length) return res.status(400).json({ error: 'Засах талбар байхгүй' });
+    if (!sets.length) return res.status(400).json({ error: 'Шинэчлэх талбар илгээгээгүй байна' });
     vals.push(req.params.id);
     const { rows } = await db(
       `UPDATE users SET ${sets.join(',')} , updated_at=NOW() WHERE id=$${n} RETURNING id,first_name,last_name,email,role,avatar_url,phone`,
@@ -80,10 +84,10 @@ router.patch('/:id', requireAuth, requireOwnerOrAdmin('id'), [
   } catch (err) { next(err); }
 });
 
-// PATCH /api/users/:id/password — нууц үг солих
+// PATCH /api/users/:id/password: Нууц үг шинэчлэх/өөрчлөх хаяг
 router.patch('/:id/password', requireAuth, requireOwnerOrAdmin('id'), [
-  body('currentPassword').notEmpty(),
-  body('newPassword').isLength({ min: 8 }).matches(/[A-Z]/).matches(/[0-9]/),
+  body('currentPassword').notEmpty().withMessage('Одоогийн нууц үг шаардлагатай'),
+  body('newPassword').isLength({ min: 8 }).withMessage('Шинэ нууц үг хамгийн багадаа 8 тэмдэгт байна'),
 ], async (req, res, next) => {
   try {
     const errs = validationResult(req);
@@ -91,9 +95,12 @@ router.patch('/:id/password', requireAuth, requireOwnerOrAdmin('id'), [
     const { currentPassword, newPassword } = req.body;
     const { rows } = await db('SELECT password_hash, salt FROM users WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Хэрэглэгч олдсонгүй' });
+    
     const { password_hash, salt } = rows[0];
     const valid = await bcrypt.compare(currentPassword + salt, password_hash);
     if (!valid) return res.status(400).json({ error: 'Одоогийн нууц үг буруу байна' });
+    
+    // Шинэ нууц үгийг шинээр давс (salt) үүсгэж аюулгүй хэшлэн хадгална
     const newSalt = crypto.randomBytes(32).toString('hex');
     const newHash = await bcrypt.hash(newPassword + newSalt, 12);
     await db('UPDATE users SET password_hash=$1, salt=$2, updated_at=NOW() WHERE id=$3', [newHash, newSalt, req.params.id]);
@@ -101,10 +108,10 @@ router.patch('/:id/password', requireAuth, requireOwnerOrAdmin('id'), [
   } catch (err) { next(err); }
 });
 
-// POST /api/users/:id/avatar — профайл зураг upload
+// POST /api/users/:id/avatar: Профайл зураг (аватар) хуулах хаяг
 router.post('/:id/avatar', requireAuth, requireOwnerOrAdmin('id'), upload.single('avatar'), async (req, res, next) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Зураг шаардлагатай' });
+    if (!req.file) return res.status(400).json({ error: 'Хуулах зураг олдсонгүй' });
     const url = `/uploads/avatars/${req.file.filename}`;
     const { rows } = await db(
       'UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2 RETURNING id,first_name,last_name,email,role,avatar_url',
@@ -116,7 +123,7 @@ router.post('/:id/avatar', requireAuth, requireOwnerOrAdmin('id'), upload.single
   } catch (err) { next(err); }
 });
 
-// DELETE /api/users/:id — Admin only
+// DELETE /api/users/:id: Хэрэглэгч устгах хаяг (Зөвхөн админ хэрэглэгч устгах эрхтэй)
 router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const { rowCount } = await db('DELETE FROM users WHERE id=$1', [req.params.id]);

@@ -1,5 +1,6 @@
 "use client";
-
+// admin/settings/page.js: Админ самбарын ерөнхий тохиргооны хуудас.
+// Эндээс админ өөрийн профайл, дэлгүүрийн мэдээлэл, мэдэгдэл хүлээн авах суваг, банкны мэдээлэл, болон харагдацын тохиргоо зэргийг удирдах боломжтой.
 import { useState } from "react";
 import {
   Save,
@@ -18,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
-// Settings sidebar дотор харагдах үндсэн хэсгүүд.
+// Тохиргооны хажуугийн цэсэнд харагдах хэсгүүдийн жагсаалт
 const SECTIONS = [
   { id: "profile", label: "Миний профайл", icon: User },
   { id: "store", label: "Дэлгүүр", icon: Store },
@@ -29,6 +30,7 @@ const SECTIONS = [
   { id: "locale", label: "Хэл & Бүс", icon: Globe },
 ];
 
+// Section: Тохиргооны хэсэг бүрийг бүрхэж харуулах компонент
 function Section({ title, description, children }) {
   return (
     <div className="bg-card border border-border rounded-xl p-6 space-y-5">
@@ -44,6 +46,7 @@ function Section({ title, description, children }) {
   );
 }
 
+// ToggleRow: Асааж унтраах товчлуур бүхий тохиргооны мөр (Жишээ нь мэдэгдлийн тохиргоо)
 function ToggleRow({ label, description, checked, onCheckedChange }) {
   return (
     <div className="flex items-center justify-between gap-4">
@@ -60,10 +63,10 @@ function ToggleRow({ label, description, checked, onCheckedChange }) {
 
 export default function AdminSettingsPage() {
   const { user, refetch } = useSession();
-  const [activeSection, setActiveSection] = useState("profile"); // Одоо харагдаж буй тохиргооны хэсэг
-  const [saved, setSaved] = useState(false); // Хадгалсан төлөв (Succes message харуулах)
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState("profile"); // Идэвхтэй байгаа тохиргооны хэсэг
+  const [saved, setSaved] = useState(false); // Хадгалалт амжилттай болсон эсэх
+  const [isEditingProfile, setIsEditingProfile] = useState(false); // Профайл засаж буй эсэх
+  const [profileSaving, setProfileSaving] = useState(false); // Профайл хадгалж буй явц
   
   const [profile, setProfile] = useState({
     firstName: user?.first_name ?? "",
@@ -98,13 +101,14 @@ export default function AdminSettingsPage() {
     showRevenue: true,
   });
 
-  // Тохиргоог хадгалах функц (Simulation)
+  // handleSave: Тохиргоог хадгалж буй үеийн үзүүлэн (хуурамч хүлээлт)
   async function handleSave() {
     await new Promise((r) => setTimeout(r, 600)); // 0.6 секунд хүлээлгэнэ
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000); // 2 секундын дараа амжилтын мессежийг арилгана
+    setTimeout(() => setSaved(false), 2000); // 2 секундын дараа амжилтын зурвасыг арилгана
   }
 
+  // handleProfileSave: Админы хувийн мэдээллийг өөрчилж хадгалах функц
   async function handleProfileSave() {
     if (!user) return;
     setProfileSaving(true);
@@ -116,7 +120,7 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(profile),
       });
       if (res.ok) {
-        await refetch();
+        await refetch(); // Сессийн мэдээллийг дахин уншиж UI-ийг шинэчилнэ
         setIsEditingProfile(false);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -162,7 +166,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar nav */}
+        {/* Хажуугийн цэс */}
         <nav className="lg:col-span-1 space-y-1">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
             <button
@@ -180,7 +184,7 @@ export default function AdminSettingsPage() {
           ))}
         </nav>
 
-        {/* Сонгосон хэсгээс хамаарч тохиргооны агуулгыг харуулах (Conditional rendering) */}
+        {/* Сонгогдсон хэсгийн тохиргооны агуулга */}
         <div className="lg:col-span-3 space-y-5">
           {activeSection === "profile" && (
             <div className="bg-card border border-border rounded-xl p-6 space-y-5">

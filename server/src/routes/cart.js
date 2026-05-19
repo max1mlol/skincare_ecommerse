@@ -1,11 +1,12 @@
 'use strict';
-// cart.js — хэрэглэгчийн сагсны CRUD route-ууд
+// cart.js: Хэрэглэгчийн сагсны CRUD үйлдлүүд (route).
+// Энэхүү файл нь хэрэглэгчийн сагсанд бүтээгдэхүүн нэмэх, тоо ширхгийг шинэчлэх, сагснаас хасах болон сагсыг бүхэлд нь хоослох API замуудыг тодорхойлно.
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { query: db } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 
-// GET /api/cart — Хэрэглэгчийн сагсыг авах
+// GET /api/cart: Нэвтэрсэн хэрэглэгчийн сагсан дахь бүх бүтээгдэхүүний мэдээллийг авах
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await db(`
@@ -19,17 +20,17 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/cart — Сагсанд бараа нэмэх эсвэл тоог шинэчлэх
+// POST /api/cart: Сагсанд бүтээгдэхүүн нэмэх эсвэл хэрэв аль хэдийн нэмэгдсэн байвал тоог нь нэмэгдүүлэх
 router.post('/', requireAuth, [
-  body('productId').isInt().withMessage('Барааны ID буруу'),
-  body('qty').isInt({ min: 1 }).withMessage('Тоо хэмжээ буруу'),
+  body('productId').isInt().withMessage('Бүтээгдэхүүний ID зөвхөн бүхэл тоо байна'),
+  body('qty').isInt({ min: 1 }).withMessage('Тоо хэмжээ хамгийн багадаа 1 байна'),
 ], async (req, res, next) => {
   try {
     const errs = validationResult(req);
     if (!errs.isEmpty()) return res.status(400).json({ errors: errs.array() });
     const { productId, qty } = req.body;
     
-    // Upsert logic (insert or update)
+    // Upsert logic (Ижил бүтээгдэхүүн байвал тоо ширхгийг нь нэмж шинэчилнэ, байхгүй бол шинээр нэмнэ)
     const { rows } = await db(`
       INSERT INTO cart_items (user_id, product_id, qty)
       VALUES ($1, $2, $3)
@@ -42,9 +43,9 @@ router.post('/', requireAuth, [
   } catch (err) { next(err); }
 });
 
-// PATCH /api/cart/:productId — Сагсан дахь барааны тоог өөрчлөх
+// PATCH /api/cart/:productId: Сагсан дахь тодорхой нэг бүтээгдэхүүний тоог шинэчлэх (Жишээ нь: Сагсны хуудас дээр ширхэг өөрчлөхөд)
 router.patch('/:productId', requireAuth, [
-  body('qty').isInt({ min: 1 }).withMessage('Тоо хэмжээ буруу'),
+  body('qty').isInt({ min: 1 }).withMessage('Тоо хэмжээ хамгийн багадаа 1 байна'),
 ], async (req, res, next) => {
   try {
     const errs = validationResult(req);
@@ -57,12 +58,12 @@ router.patch('/:productId', requireAuth, [
       RETURNING *
     `, [req.body.qty, req.session.userId, req.params.productId]);
     
-    if (!rows.length) return res.status(404).json({ error: 'Бараа олдсонгүй' });
+    if (!rows.length) return res.status(404).json({ error: 'Сагснаас тухайн бүтээгдэхүүн олдсонгүй' });
     return res.json({ item: rows[0] });
   } catch (err) { next(err); }
 });
 
-// DELETE /api/cart/:productId — Сагснаас бараа устгах
+// DELETE /api/cart/:productId: Сагснаас бүтээгдэхүүнийг ID-аар нь устгах
 router.delete('/:productId', requireAuth, async (req, res, next) => {
   try {
     await db('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [req.session.userId, req.params.productId]);
@@ -70,11 +71,11 @@ router.delete('/:productId', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/cart — Сагсыг хоослох
+// DELETE /api/cart: Хэрэглэгчийн сагсыг бүхэлд нь хоослох (Жишээ нь захиалга хийгдэж дууссаны дараа)
 router.delete('/', requireAuth, async (req, res, next) => {
   try {
     await db('DELETE FROM cart_items WHERE user_id = $1', [req.session.userId]);
-    return res.json({ message: 'Сагс хоосоллоо' });
+    return res.json({ message: 'Сагс амжилттай хоослогдлоо' });
   } catch (err) { next(err); }
 });
 

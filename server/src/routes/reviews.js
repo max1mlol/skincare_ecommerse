@@ -1,16 +1,17 @@
 'use strict';
-// reviews.js — сэтгэгдлийн CRUD route-ууд
-// Сэтгэгдэл нэмэхэд product-ийн rating/reviews_count DB trigger-ээр автоматаар шинэчлэгдэнэ.
+// reviews.js: Бүтээгдэхүүний сэтгэгдэл болон үнэлгээний CRUD үйлдлүүд (чиглүүлэгч).
+// Энэхүү файл нь бүтээгдэхүүнд үнэлгээ өгөх, сэтгэгдэл устгах, сэтгэгдлийн тоо болон жагсаалтыг авах замуудыг тодорхойлно.
+// Анхааруулга: Сэтгэгдэл нэмэгдэх/устгагдах үед бүтээгдэхүүний дундаж үнэлгээ, нийт үнэлгээний тоо нь DB-ийн trigger/функцээр автоматаар шинэчлэгддэг.
 const router = require('express').Router();
 const { body, query, validationResult } = require('express-validator');
 const { query: db }  = require('../config/db');
 const { requireAuth, requireOwnerOrAdmin } = require('../middleware/auth');
 
-// GET /api/reviews?productId=X — нэг барааны бүх сэтгэгдэл
+// GET /api/reviews: Бүтээгдэхүүний ID-аар холбогдох бүх сэтгэгдлийг хэрэглэгчийн мэдээллийн хамт авах
 router.get('/', async (req, res, next) => {
   try {
     const pid = parseInt(req.query.productId);
-    if (!pid) return res.status(400).json({ error: 'productId шаардлагатай' });
+    if (!pid) return res.status(400).json({ error: 'productId параметр шаардлагатай' });
     const { rows } = await db(
       `SELECT r.*, (u.first_name || ' ' || u.last_name) AS user_name, u.avatar_url
        FROM reviews r JOIN users u ON u.id = r.user_id
@@ -21,11 +22,11 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/reviews — нэвтэрсэн хэрэглэгч сэтгэгдэл үлдээнэ
+// POST /api/reviews: Бүтээгдэхүүнд үнэлгээ (1-ээс 5 одоор) болон сэтгэгдэл бичих
 router.post('/', requireAuth, [
   body('productId').isInt({ min: 1 }),
   body('rating').isInt({ min: 1, max: 5 }),
-  body('body').trim().isLength({ min: 1, max: 2000 }).withMessage('Сэтгэгдэл 1–2000 тэмдэгт байна'),
+  body('body').trim().isLength({ min: 1, max: 2000 }).withMessage('Сэтгэгдэл 1-ээс 2000 тэмдэгтээс бүрдсэн байна'),
 ], async (req, res, next) => {
   try {
     const errs = validationResult(req);
@@ -33,10 +34,11 @@ router.post('/', requireAuth, [
 
     const { productId, rating, body: reviewBody } = req.body;
 
-    // Бараа байгаа эсэхийг шалгана
+    // Бүтээгдэхүүн бодитоор оршин байгаа эсэхийг шалгана
     const { rows: prod } = await db('SELECT id FROM products WHERE id=$1', [productId]);
-    if (!prod.length) return res.status(404).json({ error: 'Бараа олдсонгүй' });
+    if (!prod.length) return res.status(404).json({ error: 'Бүтээгдэхүүн олдсонгүй' });
 
+    // Хэрэв тухайн хэрэглэгч өмнө нь тус бүтээгдэхүүнд үнэлгээ өгсөн бол шинэчилнэ (ON CONFLICT DO UPDATE)
     const { rows } = await db(
       `INSERT INTO reviews (user_id, product_id, rating, body)
        VALUES ($1,$2,$3,$4)
@@ -45,36 +47,36 @@ router.post('/', requireAuth, [
        RETURNING *`,
       [req.session.userId, productId, rating, reviewBody]
     );
-    // Хэрэглэгчийн нэрийг хамт буцаана (нэмэлт query шаардлагагүй)
+    // Хэрэглэгчийн одоогийн овог нэр болон аватартай нэгтгэж UI руу буцаана
     const { rows: [user] } = await db('SELECT (first_name || \' \' || last_name) AS name, avatar_url FROM users WHERE id=$1', [req.session.userId]);
     return res.status(201).json({ review: { ...rows[0], user_name: user.name, avatar_url: user.avatar_url } });
   } catch (err) { next(err); }
 });
 
-// DELETE /api/reviews/:id — өөрийн эсвэл admin устгана
+// DELETE /api/reviews/:id: Сэтгэгдлийг бичсэн эзэн эсвэл админ эрхтэй хэрэглэгч устгах боломжтой
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await db('SELECT user_id FROM reviews WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Сэтгэгдэл олдсонгүй' });
     if (req.session.role !== 'admin' && rows[0].user_id !== req.session.userId)
-      return res.status(403).json({ error: 'Хандах эрх хүрэлцэхгүй' });
+      return res.status(403).json({ error: 'Устгах эрх байхгүй байна' });
     await db('DELETE FROM reviews WHERE id=$1', [req.params.id]);
     return res.status(204).end();
   } catch (err) { next(err); }
 });
 
-// GET /api/reviews/count — Admin: нийт сэтгэгдлийн тоо
+// GET /api/reviews/count: Нийт бичигдсэн сэтгэгдлийн тоог авах (Зөвхөн админ)
 router.get('/count', requireAuth, async (req, res, next) => {
-  if (req.session.role !== 'admin') return res.status(403).json({ error: 'Зөвхөн admin' });
+  if (req.session.role !== 'admin') return res.status(403).json({ error: 'Зөвхөн админ хандах эрхтэй' });
   try {
     const { rows } = await db("SELECT COUNT(*) FROM reviews");
     return res.json({ count: parseInt(rows[0].count) });
   } catch (err) { next(err); }
 });
 
-// GET /api/reviews/all — Admin: бүх сэтгэгдэл
+// GET /api/reviews/all: Системд байгаа бүх сэтгэгдлийн жагсаалтыг бүтээгдэхүүний нэрийн хамт авах (Зөвхөн админ)
 router.get('/all', requireAuth, async (req, res, next) => {
-  if (req.session.role !== 'admin') return res.status(403).json({ error: 'Зөвхөн admin' });
+  if (req.session.role !== 'admin') return res.status(403).json({ error: 'Зөвхөн админ хандах эрхтэй' });
   try {
     const { rows } = await db(
       `SELECT r.*, (u.first_name || ' ' || u.last_name) AS user_name, p.name AS product_name, p.name_mn AS product_name_mn
