@@ -61,7 +61,7 @@ async function main() {
      VALUES ($1, $2, $3, $4, $5, 'admin', $6)
      ON CONFLICT (email) DO UPDATE SET
        password_hash=$4, salt=$5, role='admin', first_name=$1, last_name=$2, phone=$6`,
-    ['System', 'Admin', 'admin@gmail.com', hash, salt, '99119911']
+    ['System', 'Admin', 'admin@gmail.com', hash, salt, '00000000']
   );
   console.log('  ✓ admin@gmail.com (Admin_1234)');
 
