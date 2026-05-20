@@ -11,7 +11,7 @@ import { Input }     from "@/components/ui/input";
 import { Label }     from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch }    from "@/components/ui/switch";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, API_BASE } from "@/lib/utils";
 
 // CATEGORIES: Бүтээгдэхүүний системийн ангиллын утгууд
 const CATEGORIES    = ["serum","moisturizer","cleanser","toner","mask","suncare","eye-care","treatment"];
@@ -91,7 +91,13 @@ export default function ProductForm({ product, isEdit }) {
         const fd = new FormData();
         imageFiles.forEach(file => fd.append("images", file));
         
-        const up = await fetch("/api/products/upload", { method: "POST", credentials: "include", body: fd });
+        // Next.js rewrites-ээр дамжуулах үед FormData body устах магадлалтай тул
+        // шууд API_BASE рүү upload хийнэ (Бүтээгдэхүүний зургууд том байдаг)
+        const up = await fetch(`${API_BASE}/api/products/upload`, { 
+          method: "POST", 
+          credentials: "include", 
+          body: fd 
+        });
         if (!up.ok) throw new Error("Зураг хуулахад алдаа гарлаа");
         const upData = await up.json();
         // Серверээс ирсэн зургийн хаягуудыг allImages-д нэмнэ
@@ -115,6 +121,7 @@ export default function ProductForm({ product, isEdit }) {
       };
 
       // Шинээр үүсгэх эсвэл засахаас хамаарч API хаяг болон HTTP Метод өөр байна
+      // Энд Next.js rewrites ажиллах тул /api/products... ашиглаж болно (Учир нь энэ бол JSON хүсэлт)
       const url    = isEdit ? `/api/products/${product.id}` : "/api/products";
       const method = isEdit ? "PATCH" : "POST";
       

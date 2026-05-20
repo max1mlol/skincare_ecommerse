@@ -12,7 +12,7 @@ export function cn(...inputs) {
 
 // API_BASE: Express серверийн үндсэн хаяг.
 // NEXT_PUBLIC_API_URL env хувьсагчаар тохируулна (production дээр өөрчлөгдөнө).
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 // Fallback зураг — бараа эсвэл хэрэглэгчийн зураг байхгүй үед ашиглагдах default зураг.
 const FALLBACK_IMAGE =
