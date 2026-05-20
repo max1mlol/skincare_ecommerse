@@ -50,14 +50,10 @@ export default function CheckoutPage() {
   // delivery: сонгосон хүргэлтийн төрөл
   const [delivery, setDelivery] = useState("standard");
 
-  // placing: захиалга илгээж байх үеийн loading төлөв
   const [placing, setPlacing] = useState(false);
-
-  // done: захиалга амжилттай дууссан эсэх
-  const [done, setDone] = useState(false);
-
-  // orderId: захиалга дуусахад үүсэх санамсаргүй дугаар
+  const [done,    setDone]    = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [error,   setError]   = useState(null);
 
   // address: хүргэлтийн хаягийн өгөгдөл
   const [address, setAddress] = useState({
@@ -96,7 +92,7 @@ export default function CheckoutPage() {
       setOrderId(data.order?.order_number ?? `#AUR-${Date.now()}`);
       setDone(true);
     } catch (err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setPlacing(false);
     }
@@ -167,6 +163,11 @@ export default function CheckoutPage() {
               {step === 0 && (
                 <form onSubmit={handleAddressNext} className="space-y-6 animate-in slide-in-from-left-4 duration-300">
                   <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Truck size={18} /> Хүргэлтийн хаяг</h2>
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-xl">
+                      {error}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Овог</Label>

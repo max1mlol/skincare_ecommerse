@@ -100,9 +100,8 @@ router.post('/', requireAdmin, [
       in_stock = true, stock_qty = 0,
     } = req.body;
     
-    // Slug автоматаар үүсгэх логик. Давхардахаас сэргийлж timestamp залгана.
     const baseSlug = toSlug(name_mn || name);
-    const { rows: existing } = await db('SELECT slug FROM products WHERE slug LIKE $1 ORDER BY slug DESC LIMIT 1', [`${baseSlug}%`]);
+    const { rows: existing } = await db('SELECT slug FROM products WHERE slug = $1', [baseSlug]);
     const slug = existing.length ? `${baseSlug}-${Date.now()}` : baseSlug;
 
     const { rows } = await db(

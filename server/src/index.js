@@ -64,12 +64,13 @@ app.use(session({
 app.use('/api', apiLimiter);
 
 // 9. API Чиглүүлэгч замууд (Routes)
-app.use('/api/auth', require('./routes/auth').router);
-app.use('/api/users', require('./routes/users'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
+app.use('/api/auth',    require('./routes/auth').router);
+app.use('/api/users',   require('./routes/users'));
+app.use('/api/products',require('./routes/products'));
+app.use('/api/orders',  require('./routes/orders'));
 app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/cart', require('./routes/cart'));
+app.use('/api/cart',    require('./routes/cart'));
+app.use('/api/admin',   require('./routes/admin'));
 
 // 10. Серверийн эрүүл байдлыг шалгах хаяг
 app.get('/health', (_req, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }));

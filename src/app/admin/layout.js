@@ -122,7 +122,10 @@ export default function AdminLayout({ children }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => { logout(); router.push("/login"); }} className="text-destructive hover:text-destructive">
+              <SidebarMenuButton
+                onClick={async () => { await logout(); router.push("/login"); }}
+                className="text-destructive hover:text-destructive"
+              >
                 <LogOut size={16} />
                 <span>Гарах</span>
               </SidebarMenuButton>

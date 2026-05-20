@@ -66,7 +66,11 @@ router.patch('/:productId', requireAuth, [
 // DELETE /api/cart/:productId: Сагснаас бүтээгдэхүүнийг ID-аар нь устгах
 router.delete('/:productId', requireAuth, async (req, res, next) => {
   try {
-    await db('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [req.session.userId, req.params.productId]);
+    const { rowCount } = await db(
+      'DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2',
+      [req.session.userId, req.params.productId]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Сагснаас тухайн бүтээгдэхүүн олдсонгүй' });
     return res.json({ message: 'Амжилттай устгалаа' });
   } catch (err) { next(err); }
 });
