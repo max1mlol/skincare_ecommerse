@@ -1,6 +1,6 @@
 "use client";
 // Navbar: Вэбсайтын толгой хэсэг (Header).
-// Энд лого, ангилал бүхий унждаг цэс, брэндүүдийн шүүлтүүр, ухаалаг хайлт, сагсны тоолуур, гэрэлт/харанхуй горим солигч болон хэрэглэгчийн профайл цэс агуулагдана.
+// Энд лого, ангилал бүхий цэс, брэндүүдийн шүүлтүүр, хайлт, сагсны тоолуур, гэрэлт/харанхуй горим солигч болон хэрэглэгчийн профайл цэс агуулагдана.
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ShoppingBag, Menu, X, Sparkles, Tag, Package, Star, LogOut, Settings, ClipboardList, ShieldCheck, ChevronDown } from "lucide-react";
@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { getImageUrl } from "@/lib/utils";
 
 // Вэбсайтын үндсэн бүтээгдэхүүний ангилалууд
 const CATEGORIES = [
@@ -47,7 +48,7 @@ function AvatarCircle({ user, size = 32 }) {
   const initials = getInitials(user?.name);
   return (
     <Avatar style={{ width: size, height: size }}>
-      <AvatarImage src={user?.avatar_url} alt={user?.name ?? "Avatar"} className="object-cover" />
+      <AvatarImage src={getImageUrl(user?.avatar_url)} alt={user?.name ?? "Avatar"} className="object-cover" />
       <AvatarFallback className="bg-foreground text-background font-semibold" style={{ fontSize: size * 0.35 }}>
         {initials}
       </AvatarFallback>
@@ -55,11 +56,11 @@ function AvatarCircle({ user, size = 32 }) {
   );
 }
 
-// ProfileDropdown: Компьютерийн дэлгэцэнд харагдах профайл цэсний dropdown
+// ProfileDropdown: Профайл цэсний dropdown
 function ProfileDropdown() {
   const { user, loading, logout } = useSession();
 
-  // Сесс ачаалж байх үеийн араг яс (Skeleton) харагдац
+  // Session ачаалж байх үед Skeleton харагдана
   if (loading) return <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />;
 
   // Нэвтрээгүй хэрэглэгчид харагдах нэвтрэх, бүртгүүлэх товчлуурууд

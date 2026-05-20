@@ -9,8 +9,9 @@ import { useSession } from "@/context/SessionContext";
 import Navbar  from "@/components/Navbar";
 import Footer  from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getImageUrl } from "@/lib/utils";
 
-// Захиалгын статусаас хамаарч өөр өөр өнгөөр харуулах зураглал
+// Захиалгын статусаас хамаарч өөр өөр өнгөөр харуулах
 const STATUS_COLOR = {
   pending:   "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -18,8 +19,6 @@ const STATUS_COLOR = {
   delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
-
-// Англи статусуудыг Монгол хэл рүү хөрвүүлэх зураглал
 const STATUS_MN = {
   pending:   "Хүлээгдэж буй",
   confirmed: "Баталгаажсан",
@@ -49,7 +48,7 @@ export default function MyOrdersPage() {
       .finally(() => setLoading(false));
   }, [user, authLoading, router]);
 
-  // handleAvatarChange: Аватар зургийг сонгоход FormData үүсгэж сервер лүү илгээх функц
+  // handleAvatarChange: Avatar зургийг сонгоход FormData үүсгэж сервер лүү илгээх функц
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -57,12 +56,12 @@ export default function MyOrdersPage() {
     const res = await fetch(`/api/users/${user?.id}/avatar`, {
       method: "POST", credentials: "include", body: fd,
     });
-    if (res.ok) { await refetch(); } // Зураг амжилттай солигдвол сессийг шинэчилнэ
+    if (res.ok) { await refetch(); } // Зураг амжилттай солигдвол session-ийг шинэчилнэ
   }
 
   if (authLoading || !user) return null;
 
-  // Хэрэглэгчийн нэрний эхний үсгүүдийг аватар дээр харуулах зорилгоор бэлдэх
+  // Хэрэглэгчийн нэрний эхний үсгүүдийг avatar-т харуулах зорилгоор бэлдэх
   const initials = user.name?.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() ?? "U";
 
   return (
@@ -72,13 +71,13 @@ export default function MyOrdersPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="flex flex-col md:flex-row gap-10">
-            {/* ЗҮҮН САЙДБАР (Sidebar Navigation) */}
+            {/* Sidebar Navigation */}
             <aside className="w-full md:w-64 shrink-0 space-y-6">
               {/* Хэрэглэгчийн товч мэдээлэл */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
                 <div className="relative">
                   <Avatar className="w-12 h-12 border border-border">
-                    <AvatarImage src={user.avatar_url} alt={user.name} className="object-cover" />
+                    <AvatarImage src={getImageUrl(user.avatar_url)} alt={user.name} className="object-cover" />
                     <AvatarFallback className="bg-foreground text-background font-bold text-sm">
                       {initials}
                     </AvatarFallback>
@@ -116,7 +115,7 @@ export default function MyOrdersPage() {
               </nav>
             </aside>
 
-            {/* БАРУУН АГУУЛГА (Main Content) */}
+            {/* Main Content */}
             <div className="flex-1 space-y-6">
               
               <div className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-sm min-h-[400px]">
@@ -124,7 +123,7 @@ export default function MyOrdersPage() {
                 <p className="text-sm text-muted-foreground mb-6">Таны хийсэн бүх захиалгын түүх.</p>
                 
                 {loading ? (
-                  // Ачаалж буй үеийн араг яс (Skeleton) харуулах
+                  // Ачаалж буй үеийн skeleton-г харуулах
                   <div className="space-y-3 mt-8">
                     {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted/50 animate-pulse rounded-xl" />)}
                   </div>

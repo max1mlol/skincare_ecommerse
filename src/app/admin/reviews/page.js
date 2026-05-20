@@ -35,12 +35,12 @@ export default function AdminReviewsPage() {
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
-          // Ачаалж байх үеийн араг яс (Skeleton) харуулах
+          // Ачаалж байх үеийн skeleton харуулах
           <div className="p-6 space-y-3">
             {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-muted animate-pulse rounded" />)}
           </div>
         ) : reviews.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted-foreground">Одоогоор бичигдсэн сэтгэгдэл байхгүй байна</p>
+          <p className="p-8 text-center text-sm text-muted-foreground">Сэтгэгдэл байхгүй байна</p>
         ) : (
           <div className="divide-y divide-border/40">
             {reviews.map((r) => (

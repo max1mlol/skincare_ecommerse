@@ -9,7 +9,7 @@ export function SessionProvider({ children }) {
   const [user,    setUser]    = useState(undefined); // Хэрэглэгчийн төлөв: undefined нь ачаалж байгаа, null нь нэвтрээгүй, объект нь нэвтэрсэн хэрэглэгч
   const [loading, setLoading] = useState(true); // Ачаалалтын төлөв
 
-  // refetch: Сервер дэх /api/auth/me хаягаас одоогийн сесс доторх хэрэглэгчийг унших функц
+  // refetch: Сервер дэх /api/auth/me хаягаас одоогийн session доторх хэрэглэгчийг унших функц
   const refetch = useCallback(async () => {
     try {
       const res  = await fetch("/api/auth/me", { credentials: "include" }); // credentials: include нь session cookie дамжуулна

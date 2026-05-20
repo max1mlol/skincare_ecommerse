@@ -8,22 +8,18 @@ import { useRouter } from "next/navigation";
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { user } = useSession(); // Хэрэглэгчийн сессийн төлөв
+  const { user, loading: sessionLoading } = useSession(); // Хэрэглэгчийн session төлөв
   const router = useRouter();
   const [items, setItems] = useState([]); // Сагсанд буй бараануудын жагсаалт
   const [loading, setLoading] = useState(true); // Сагсыг уншиж буй төлөв
-  const [prevUserId, setPrevUserId] = useState(user?.id); // Хэрэглэгч солигдож буйг хянах ID
 
-  // Хэрэглэгч нэвтрэх эсвэл гарах үед сагсны төлөвийг шинэчлэнэ
-  if (user?.id !== prevUserId) {
-    setPrevUserId(user?.id);
-    setItems([]);
-    setLoading(!!user); // Гарах үед ачаалалт байхгүй, харин нэвтрэх үед серверээс өгөгдөл авч дуустал ачаална
-  }
 
   // fetchCart: Сагсанд байгаа өгөгдлийг серверээс татах функц
   const fetchCart = useCallback(async () => {
-    if (!user) return; // Нэвтрээгүй бол сервер лүү хүсэлт илгээхгүй
+    if (!user) {
+      setLoading(false);
+      return; // Нэвтрээгүй бол сервер лүү хүсэлт илгээхгүй
+    }
     
     try {
       const res = await fetch("/api/cart", { credentials: "include" });

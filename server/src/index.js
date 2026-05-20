@@ -1,12 +1,12 @@
 'use strict';
 // index.js — Express серверийн үндсэн файл (API Entry Point).
 // Энэхүү файл нь Express серверийг үүсгэж, шаардлагатай хамгаалалтын давхаргууд (middleware),
-// сесс удирдлага (session state), болон өгөгдлийн сангийн холболтуудыг нэгтгэн серверийг эхлүүлнэ.
+// Session удирдлага (session state), болон өгөгдлийн сангийн холболтуудыг нэгтгэн серверийг эхлүүлнэ.
 require('dotenv').config();
 
 const express   = require('express');
 const session   = require('express-session');
-const PgSession = require('connect-pg-simple')(session); // Сессийг санах ой (RAM) дээр биш PostgreSQL DB рүү хадгалах сан
+const PgSession = require('connect-pg-simple')(session); // Session санах ой (RAM) дээр биш PostgreSQL DB рүү хадгалах сан
 const helmet    = require('helmet'); // HTTP толгой мэдээллүүдийг хамгаалж аюулгүй болгох сан
 const cors      = require('cors'); // Өөр домэйноос (Жишээ нь Next.js) хандах эрхийг удирдах сан
 const morgan    = require('morgan'); // Ирж буй хүсэлтийн хаяг болон статусыг консол дээр хэвлэх логгер
@@ -35,17 +35,17 @@ if (!TEST) app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// 5. Сервер дээр хуулагдсан бүтээгдэхүүн болон хэрэглэгчийн зургуудыг статик файл хэлбэрээр илгээх
+// 5. Сервер дээр хадгалагдсан бүтээгдэхүүн болон хэрэглэгчийн зургуудыг статик файл хэлбэрээр илгээх
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// 6. Сесс хадгалах сан (Session Store) тохируулах. Тестийн горимоос бусад үед PostgreSQL дээрх `session` хүснэгтэд хадгална
+// 6. Session хадгалах сан (Session Store) тохируулах. Тестийн горимоос бусад үед PostgreSQL дээрх `session` хүснэгтэд хадгална
 const sessionStore = TEST ? undefined : new PgSession({
   pool,
   tableName:            'session',
   createTableIfMissing: true, // Хэрэв session хүснэгт байхгүй бол автоматаар үүсгэнэ
 });
 
-// 7. Сессийн тохиргоо болон Күүки (Cookie) хамгаалалт
+// 7. Session тохиргоо болон Cookie хамгаалалт
 app.use(session({
   ...(sessionStore ? { store: sessionStore } : {}),
   secret:            process.env.SESSION_SECRET,
@@ -74,7 +74,7 @@ app.use('/api/cart', require('./routes/cart'));
 // 10. Серверийн эрүүл байдлыг шалгах хаяг
 app.get('/health', (_req, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }));
 
-// 11. Олдоогүй чиглэлүүдийг 404-өөр буцаана
+// 11. Олдоогүй route-ыг 404-өөр буцаана
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
 // 12. Глобал алдааны зохицуулагч (Global Error Handler)

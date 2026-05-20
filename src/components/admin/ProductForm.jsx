@@ -11,6 +11,7 @@ import { Input }     from "@/components/ui/input";
 import { Label }     from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch }    from "@/components/ui/switch";
+import { getImageUrl } from "@/lib/utils";
 
 // CATEGORIES: Бүтээгдэхүүний системийн ангиллын утгууд
 const CATEGORIES    = ["serum","moisturizer","cleanser","toner","mask","suncare","eye-care","treatment"];
@@ -249,7 +250,7 @@ export default function ProductForm({ product, isEdit }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {previews.map((src, idx) => (
               <div key={idx} className="relative w-full aspect-square border border-border rounded-xl overflow-hidden">
-                <Image src={src} alt="preview" fill className="object-cover" />
+                <Image src={src.startsWith("blob:") ? src : getImageUrl(src)} alt="preview" fill className="object-cover" unoptimized={src.startsWith("blob:")} />
                 <button type="button" onClick={() => removeImage(idx)}
                   className="absolute top-1 right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:opacity-80">
                   <X size={12} />

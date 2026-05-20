@@ -2,16 +2,7 @@
 // admin/settings/page.js: Админ самбарын ерөнхий тохиргооны хуудас.
 // Эндээс админ өөрийн профайл, дэлгүүрийн мэдээлэл, мэдэгдэл хүлээн авах суваг, банкны мэдээлэл, болон харагдацын тохиргоо зэргийг удирдах боломжтой.
 import { useState } from "react";
-import {
-  Save,
-  Store,
-  Bell,
-  Shield,
-  Palette,
-  Globe,
-  CreditCard,
-  User,
-} from "lucide-react";
+import { Save, Store, Bell, Shield, Palette, Globe, CreditCard, User } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
-// Тохиргооны хажуугийн цэсэнд харагдах хэсгүүдийн жагсаалт
+// Settings sidebar дотор харагдах үндсэн хэсгүүд.
 const SECTIONS = [
   { id: "profile", label: "Миний профайл", icon: User },
   { id: "store", label: "Дэлгүүр", icon: Store },
@@ -101,7 +92,7 @@ export default function AdminSettingsPage() {
     showRevenue: true,
   });
 
-  // handleSave: Тохиргоог хадгалж буй үеийн үзүүлэн (хуурамч хүлээлт)
+  // Тохиргоог хадгалах функц (Simulation)
   async function handleSave() {
     await new Promise((r) => setTimeout(r, 600)); // 0.6 секунд хүлээлгэнэ
     setSaved(true);
@@ -120,7 +111,7 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(profile),
       });
       if (res.ok) {
-        await refetch(); // Сессийн мэдээллийг дахин уншиж UI-ийг шинэчилнэ
+        await refetch(); // Session-ийн мэдээллийг дахин уншиж UI-ийг шинэчилнэ
         setIsEditingProfile(false);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -166,7 +157,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Хажуугийн цэс */}
+        {/* Sidebar nav */}
         <nav className="lg:col-span-1 space-y-1">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
             <button
@@ -184,7 +175,7 @@ export default function AdminSettingsPage() {
           ))}
         </nav>
 
-        {/* Сонгогдсон хэсгийн тохиргооны агуулга */}
+        {/* Сонгосон хэсгээс хамаарч тохиргооны агуулгыг харуулах (Conditional rendering) */}
         <div className="lg:col-span-3 space-y-5">
           {activeSection === "profile" && (
             <div className="bg-card border border-border rounded-xl p-6 space-y-5">

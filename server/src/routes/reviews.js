@@ -1,5 +1,5 @@
 'use strict';
-// reviews.js: Бүтээгдэхүүний сэтгэгдэл болон үнэлгээний CRUD үйлдлүүд (чиглүүлэгч).
+// reviews.js: Бүтээгдэхүүний сэтгэгдэл болон үнэлгээний CRUD үйлдлүүд (route).
 // Энэхүү файл нь бүтээгдэхүүнд үнэлгээ өгөх, сэтгэгдэл устгах, сэтгэгдлийн тоо болон жагсаалтыг авах замуудыг тодорхойлно.
 // Анхааруулга: Сэтгэгдэл нэмэгдэх/устгагдах үед бүтээгдэхүүний дундаж үнэлгээ, нийт үнэлгээний тоо нь DB-ийн trigger/функцээр автоматаар шинэчлэгддэг.
 const router = require('express').Router();
@@ -22,11 +22,11 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/reviews: Бүтээгдэхүүнд үнэлгээ (1-ээс 5 одоор) болон сэтгэгдэл бичих
+// POST /api/reviews: Бүтээгдэхүүнд үнэлгээ (1–5 одоор) болон сэтгэгдэл бичих
 router.post('/', requireAuth, [
   body('productId').isInt({ min: 1 }),
   body('rating').isInt({ min: 1, max: 5 }),
-  body('body').trim().isLength({ min: 1, max: 2000 }).withMessage('Сэтгэгдэл 1-ээс 2000 тэмдэгтээс бүрдсэн байна'),
+  body('body').trim().isLength({ min: 1, max: 2000 }).withMessage('Сэтгэгдэл 1–2000 тэмдэгт байна'),
 ], async (req, res, next) => {
   try {
     const errs = validationResult(req);
@@ -47,7 +47,7 @@ router.post('/', requireAuth, [
        RETURNING *`,
       [req.session.userId, productId, rating, reviewBody]
     );
-    // Хэрэглэгчийн одоогийн овог нэр болон аватартай нэгтгэж UI руу буцаана
+    // Хэрэглэгчийн одоогийн овог нэр болон avatar-тай нэгтгэж UI руу буцаана
     const { rows: [user] } = await db('SELECT (first_name || \' \' || last_name) AS name, avatar_url FROM users WHERE id=$1', [req.session.userId]);
     return res.status(201).json({ review: { ...rows[0], user_name: user.name, avatar_url: user.avatar_url } });
   } catch (err) { next(err); }

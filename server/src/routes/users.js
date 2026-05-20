@@ -1,5 +1,5 @@
 'use strict';
-// users.js: Хэрэглэгчийн мэдээлэл засах, аватар зураг хуулах, нууц үг солих API замууд (чиглүүлэгч).
+// users.js: Хэрэглэгчийн мэдээлэл засах, аватар зураг хуулах, нууц үг солих API замууд (route).
 // Энэхүү файл нь хэрэглэгчдийн профайлын өгөгдлийг удирдах, зураг хуулах (Multer) болон админ хэрэглэгчдийг удирдах замуудыг тодорхойлно.
 const path   = require('node:path');
 const router = require('express').Router();
@@ -100,7 +100,7 @@ router.patch('/:id/password', requireAuth, requireOwnerOrAdmin('id'), [
     const valid = await bcrypt.compare(currentPassword + salt, password_hash);
     if (!valid) return res.status(400).json({ error: 'Одоогийн нууц үг буруу байна' });
     
-    // Шинэ нууц үгийг шинээр давс (salt) үүсгэж аюулгүй хэшлэн хадгална
+    // Шинэ нууц үгийг шинээр salt үүсгэж аюулгүй hash-лаад хадгална
     const newSalt = crypto.randomBytes(32).toString('hex');
     const newHash = await bcrypt.hash(newPassword + newSalt, 12);
     await db('UPDATE users SET password_hash=$1, salt=$2, updated_at=NOW() WHERE id=$3', [newHash, newSalt, req.params.id]);
@@ -108,7 +108,7 @@ router.patch('/:id/password', requireAuth, requireOwnerOrAdmin('id'), [
   } catch (err) { next(err); }
 });
 
-// POST /api/users/:id/avatar: Профайл зураг (аватар) хуулах хаяг
+// POST /api/users/:id/avatar: Профайл зураг upload хийх хаяг
 router.post('/:id/avatar', requireAuth, requireOwnerOrAdmin('id'), upload.single('avatar'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Хуулах зураг олдсонгүй' });
