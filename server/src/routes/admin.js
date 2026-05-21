@@ -1,20 +1,24 @@
-'use strict';
-// admin.js — Удирдлагын самбарт зориулсан нэгтгэлийн (aggregated) тоон мэдээллийн endpoint.
-// Client дээр 3 тусдаа API дуудаж, JS-ээр тооцохын оронд нэг SQL хүсэлтээр бүгдийг тооцоолно.
-const router = require('express').Router();
-const { query: db }    = require('../config/db');
-const { requireAdmin } = require('../middleware/auth');
+'use strict'; // JavaScript-ийн strict горимыг идэвхжүүлж, алдаа гаргахаас сэргийлж, илүү найдвартай код бичих нөхцөлийг бүрдүүлнэ
 
-// GET /api/admin/stats — Dashboard-д шаардлагатай бүх KPI, сүүлийн захиалга, шилдэг бараа, орлогын графикийн өгөгдлийг нэг дуудалтаар авах
-router.get('/stats', requireAdmin, async (req, res, next) => {
+// Admin dashboard-ын статистик мэдээллийг авах
+const router = require('express').Router(); // Express-ийн Router-ийг дуудаж модулийн замуудыг тодорхойлно
+
+const { query: db }    = require('../config/db'); // SQL хүсэлт ажиллуулуулах query wrapper
+
+const { requireAdmin } = require('../middleware/auth'); // Зөвхөн админ хандахыг зөвшөөрөх middleware
+
+// GET /api/admin/stats - Админы хянах самбарт зориулж нэгтгэсэн статистик болон KPI мэдээллүүдийг авах
+router.get('/stats', requireAdmin, async (req, res, next) => { // GET /stats замд хандахад requireAdmin-ээр шалгаж async функцийг ажиллуулна
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgo = new Date(); // Одоогийн цаг хугацааг илэрхийлэх Date объект үүсгэнэ
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30); // Одоогийн өдрөөс 30 хоногийг хасаж эхлэх өдрийг тооцно
 
-    // Бүх тооцоолол PostgreSQL дээр нэгэн зэрэг гүйцэтгэнэ (Promise.all)
+    // Олон тусдаа SQL хүсэлтүүдийг өгөгдлийн санд нэгэн зэрэг (concurrently) ажиллуулж хугацаа хэмнэнэ (Promise.all)
     const [kpiResult, userCount, productCount, recentOrders, topProducts, revenueByDay] = await Promise.all([
-      // 1. Нийт орлого, захиалгын тоо, хүлээгдэж буй тоо, энэ сар болон өнгөрсөн сарын орлого
+      
+      // 1. Нийт захиалгын тоо, хүлээгдэж буй тоо, нийт орлого, энэ сарын орлого болон өнгөрсөн сарын орлогыг нэг хүсэлтээр бодож олно
       db(`
+        /* Нийт захиалга, хүлээгдэж буй захиалга, нийт орлого болон саруудын орлогыг тооцоолох SQL */
         SELECT
           COUNT(*)::int                                                                      AS total_orders,
           COUNT(*) FILTER (WHERE status = 'pending')::int                                   AS pending_count,
@@ -26,12 +30,16 @@ router.get('/stats', requireAdmin, async (req, res, next) => {
             AND created_at <  date_trunc('month', NOW())), 0)::bigint                      AS revenue_last_month
         FROM orders
       `),
-      // 2. Customer үүрэгтэй хэрэглэгчдийн тоо
-      db(`SELECT COUNT(*) FILTER (WHERE role = 'customer')::int AS count FROM users`),
-      // 3. Нийт бүтээгдэхүүний тоо
-      db(`SELECT COUNT(*)::int AS count FROM products`),
-      // 4. Сүүлийн 8 захиалга (хэрэглэгчийн нэрийн хамт)
+      
+      // 2. Системд бүртгэлтэй 'customer' үүрэгтэй нийт хэрэглэгчдийн тоог олно
+      db(`/* Хэрэглэгчдийн үүрэг customer байх нийт тоог авах SQL */ SELECT COUNT(*) FILTER (WHERE role = 'customer')::int AS count FROM users`),
+      
+      // 3. Өгөгдлийн санд байгаа нийт бүтээгдэхүүний тоог олно
+      db(`/* Нийт бүтээгдэхүүний тоог авах SQL */ SELECT COUNT(*)::int AS count FROM products`),
+      
+      // 4. Сүүлийн 8 захиалгыг хэрэглэгчийн овог нэртэй нь холбон (LEFT JOIN) уншина
       db(`
+        /* Сүүлийн 8 захиалгыг хэрэглэгчийн нэртэй холбож унших SQL */
         SELECT o.id, o.order_number, o.total, o.status, o.created_at,
                (u.first_name || ' ' || u.last_name) AS user_name
         FROM   orders o
@@ -39,37 +47,45 @@ router.get('/stats', requireAdmin, async (req, res, next) => {
         ORDER  BY o.created_at DESC
         LIMIT  8
       `),
-      // 5. Сэтгэгдлийн тоогоор тэргүүлсэн 5 бүтээгдэхүүн
+      
+      // 5. Бичигдсэн сэтгэгдлийн тоогоор тэргүүлсэн шилдэг 5 бүтээгдэхүүнийг уншина
       db(`
+        /* Сэтгэгдэл хамгийн ихтэй 5 бүтээгдэхүүн унших SQL */
         SELECT id, name, name_mn, price, rating, reviews_count
         FROM   products
         ORDER  BY reviews_count DESC
         LIMIT  5
       `),
-      // 6. Сүүлийн 30 хоногийн өдөр тутмын орлого (графикт зориулсан)
+      
+      // 6. Сүүлийн 30 хоногийн өдөр тутмын нийт орлогыг өдрөөр нь бүлэглэж (графикт зориулж) уншина
       db(`
+        /* Өнгөрсөн 30 хоногийн өдөр тутмын орлогыг бүлэглэж авах SQL */
         SELECT DATE(created_at) AS day, SUM(total)::bigint AS revenue
         FROM   orders
         WHERE  created_at >= $1 AND status != 'cancelled'
         GROUP  BY DATE(created_at)
         ORDER  BY day ASC
-      `, [thirtyDaysAgo.toISOString()]),
+      `, [thirtyDaysAgo.toISOString()]), // SQL injection-оос сэргийлж 30 хоногийн өмнөх огноог параметр хэлбэрээр дамжуулна
     ]);
 
-    const k = kpiResult.rows[0];
+    const k = kpiResult.rows[0]; // KPI тооцооллын эхний мөрийн үр дүнг авна
+    
+    // Бэлтгэсэн статистик өгөгдлийг JSON форматтай хариу болгон буцаана
     return res.json({
-      totalRevenue:      Number(k.total_revenue),
-      totalOrders:       k.total_orders,
-      pendingOrders:     k.pending_count,
-      totalCustomers:    userCount.rows[0].count,
-      totalProducts:     productCount.rows[0].count,
-      revenueThisMonth:  Number(k.revenue_this_month),
-      revenueLastMonth:  Number(k.revenue_last_month),
-      recentOrders:      recentOrders.rows,
-      topProducts:       topProducts.rows,
-      revenueByDay:      revenueByDay.rows,
+      totalRevenue:      Number(k.total_revenue), // bigint төрлийг JS Number төрөл рүү хөрвүүлнэ
+      totalOrders:       k.total_orders, // Нийт захиалгын тоог онооно
+      pendingOrders:     k.pending_count, // Хүлээгдэж буй захиалгын тоог онооно
+      totalCustomers:    userCount.rows[0].count, // Хэрэглэгчдийн тоог онооно
+      totalProducts:     productCount.rows[0].count, // Бүтээгдэхүүний тоог онооно
+      revenueThisMonth:  Number(k.revenue_this_month), // Энэ сарын орлогыг хөрвүүлж онооно
+      revenueLastMonth:  Number(k.revenue_last_month), // Өнгөрсөн сарын орлогыг хөрвүүлж онооно
+      recentOrders:      recentOrders.rows, // Сүүлийн захиалгуудын жагсаалт
+      topProducts:       topProducts.rows, // Шилдэг бүтээгдэхүүнүүдийн жагсаалт
+      revenueByDay:      revenueByDay.rows, // Өдрийн орлогын мэдээлэл (графикт зориулсан)
     });
-  } catch (err) { next(err); }
+  } catch (err) { 
+    next(err); // Ямар нэгэн алдаа гарвал Express-ийн алдаа боловсруулах ерөнхий middleware-т дамжуулна
+  }
 });
 
 module.exports = router;

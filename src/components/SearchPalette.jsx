@@ -146,11 +146,11 @@ export function SearchPalette() {
   const matchedProducts = q
     ? PRODUCTS.filter(
         (p) =>
-          p.nameMn.toLowerCase().includes(q) ||   // Монгол нэр
-          p.name.toLowerCase().includes(q) ||      // Англи нэр
-          p.brand.toLowerCase().includes(q) ||     // Брэнд
-          (p.categoryMn ?? "").toLowerCase().includes(q) || // Ангилал
-          p.tags.some((t) => t.toLowerCase().includes(q)),  // Тэгүүд
+          (p.nameMn?.toLowerCase().includes(q)) ||   // Монгол нэр
+          (p.name?.toLowerCase().includes(q)) ||      // Англи нэр
+          (p.brand?.toLowerCase().includes(q)) ||     // Брэнд
+          (p.categoryMn?.toLowerCase().includes(q)) || // Ангилал
+          (p.tags?.some((t) => t.toLowerCase().includes(q)))  // Тэгүүд
       ).slice(0, 6)
     : PRODUCTS.slice(0, 5); // Хоосон үед 5 онцлох бараа
 
@@ -233,12 +233,12 @@ export function SearchPalette() {
                 {/* truncate: урт нэрийг "..." болгоно */}
                 <p className="text-sm font-medium text-foreground truncate">{p.nameMn}</p>
                 <p className="text-xs text-muted-foreground">
-                  {p.categoryMn} · ⭐ {p.rating} ({p.reviews.toLocaleString()})
+                  {p.categoryMn} · ⭐ {p.rating} ({p.reviews?.toLocaleString() || 0})
                 </p>
               </div>
               {/* Үнэ */}
               <span className="text-xs font-bold text-foreground shrink-0">
-                {p.price.toLocaleString("mn-MN")}₮
+                {p.price?.toLocaleString("mn-MN") || 0}₮
               </span>
             </CommandItem>
           ))}

@@ -14,7 +14,7 @@ const pool = new Pool({
 });
 
 async function main() {
-  // ── 1. Бараа ──────────────────────────────────────────────
+  // 1. Бараа
   const code  = require('fs').readFileSync(
     require('path').join(__dirname, '../../src/lib/products.js'), 'utf8'
   );
@@ -52,7 +52,7 @@ async function main() {
   }
   await pool.query(`SELECT setval('products_id_seq', (SELECT MAX(id) FROM products))`);
 
-  // ── 2. Admin хэрэглэгч ────────────────────────────────────
+  // 2. Admin хэрэглэгч
   console.log('\nCreating admin user...');
   const salt = crypto.randomBytes(32).toString('hex');
   const hash = await bcrypt.hash('Admin_1234' + salt, 12);
@@ -65,8 +65,8 @@ async function main() {
   );
   console.log('  ✓ admin@gmail.com (Admin_1234)');
 
-  console.log('\n✅ Seed complete!');
+  console.log('\no👍🏿Seed complete!');
   await pool.end();
 }
 
-main().catch((e) => { console.error('❌ Seed error:', e.message); process.exit(1); });
+main().catch((e) => { console.error('Seed error:', e.message); process.exit(1); });

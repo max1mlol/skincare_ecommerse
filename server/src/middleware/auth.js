@@ -1,46 +1,54 @@
 'use strict';
-// middleware/auth.js — Нэвтрэлт болон эрх шалгах хамгаалалтын давхаргууд (Middleware).
-// Энэхүү модул нь Express сервер дээр ирж буй хүсэлтүүдэд сессийн шалгалт хийж, хандах эрхийг хязгаарлана.
+
+// Энэхүү middleware модуль нь хэрэглэгчийн нэвтрэлт болон эрх шалгах, тодорхой замуудын хандалтыг хязгаарлах ажлыг гүйцэтгэнэ.
 
 /**
- * requireAuth — Хэрэглэгч нэвтэрсэн эсэхийг сесс доторх userId-аар нь шалгана.
- * Нэвтрээгүй хэрэглэгчдэд 401 Unauthorized алдааг буцаана.
+ * requireAuth - Хэрэглэгч системд нэвтэрсэн эсэхийг session доторх userId-аар нь шалгана.
+ * Хэрэв нэвтрээгүй бол 401 Unauthorized алдаа болон мэдэгдлийг буцаана.
  */
 const requireAuth = (req, res, next) => {
+  // Хүсэлтийн session болон session дотор userId байгаа эсэхийг шалгана
   if (!req.session?.userId) {
-    return res.status(401).json({ error: 'Нэвтрэх шаардлагатай (Session олдоогүй)' });
+    // Нэвтрээгүй бол 401 статус код болон алдааны мэдээллийг JSON хэлбэрээр буцаана
+    return res.status(401).json({ error: 'Нэвтрэх шаардлагатай (session олдоогүй)' });
   }
-  return next(); // Эрх бүхий хэрэглэгч бол дараагийн ажилд шилжүүлнэ
-};
-
-/**
- * requireAdmin — Зөвхөн админ эрхтэй хэрэглэгчдийг нэвтрүүлнэ.
- * Session-ийн role 'admin' байхыг шаардах бөгөөд хандах эрхгүй бол 403 Forbidden алдаа өгнө.
- */
-const requireAdmin = (req, res, next) => {
-  if (!req.session?.userId) {
-    return res.status(401).json({ error: 'Нэвтрэх шаардлагатай' });
-  }
-  if (req.session.role !== 'admin') {
-    return res.status(403).json({ error: 'Зөвхөн админ хандах эрхтэй)' });
-  }
+  // Нэвтэрсэн хэрэглэгч бол дараагийн ажил эсвэл middleware руу шилжүүлнэ
   return next();
 };
 
 /**
- * requireOwnerOrAdmin — Өөрийнх нь мэдээлэл эсвэл админ байхыг шаардах эрх шалгагч.
- * Жишээ нь: Хэрэглэгч өөрийн мэдээллээ засах эсвэл админ засах эрхтэй үед хэрэглэгдэнэ.
- * @param {string} paramName  req.params-аас унших хэрэглэгчийн ID-ийн нэр (анхдагч утга нь 'id')
+ * requireAdmin - Зөвхөн админ эрхтэй хэрэглэгчдийг нэвтрүүлнэ.
+ * session дэх үүрэг (role) нь 'admin' байхыг шаардах бөгөөд эрхгүй бол 403 Forbidden алдаа өгнө.
  */
-const requireOwnerOrAdmin = (paramName = 'id') => (req, res, next) => {
+const requireAdmin = (req, res, next) => {
+  // Хэрэглэгч нэвтэрсэн эсэхийг эхлээд шалгана
   if (!req.session?.userId) {
     return res.status(401).json({ error: 'Нэвтрэх шаардлагатай' });
   }
-  // Хэрэв админ байх эсвэл хүсэлт илгээж буй хэрэглэгчийн ID нь сесс дэх ID-тай таарч байвал нэвтрүүлнэ
+  // session доторх хэрэглэгчийн үүрэг нь 'admin' биш эсэхийг шалгана
+  if (req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Хандах эрх татгалзсан: Админ эрх шаардлагатай' });  // Админ биш бол хандах эрхгүй гэсэн 403 статус кодыг буцаана
+  }
+  // Админ мөн бол дараагийн ажил руу шилжүүлнэ
+  return next();
+};
+
+/**
+ * requireOwnerOrAdmin - Өөрийнх нь мэдээлэл эсвэл админ байхыг шаардах эрх шалгагч.
+ * @param {string} paramName - req.params доторх хэрэглэгчийн ID-ийн нэр (анхдагч утга нь 'id')
+ */
+const requireOwnerOrAdmin = (paramName = 'id') => (req, res, next) => {
+  // Хэрэглэгч нэвтэрсэн эсэхийг шалгана
+  if (!req.session?.userId) {
+    return res.status(401).json({ error: 'Нэвтрэх шаардлагатай' });
+  }
+  // Хэрэв админ байх эсвэл хүсэлт илгээж буй хэрэглэгчийн ID нь session дэх ID-тай таарч байвал нэвтрүүлнэ
   if (req.session.role === 'admin' || req.session.userId === req.params[paramName]) {
     return next();
   }
-  return res.status(403).json({ error: 'Зөвхөн өөрийн мэдээлэлд хандах эсвэл засах эрхтэй' });
+  // Аль нь ч биш бол 403 статус код өгч хандалтыг хязгаарлана
+  return res.status(403).json({ error: 'Хандах эрх татгалзсан: Зөвхөн өөрийн мэдээлэлд хандах эсвэл засах эрхтэй' });
 };
 
+// Бусад файлуудад ашиглахын тулд middleware функцуудыг экспортолно
 module.exports = { requireAuth, requireAdmin, requireOwnerOrAdmin };

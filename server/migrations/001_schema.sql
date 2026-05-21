@@ -1,32 +1,37 @@
+-- COALESCE -> NULL утгыг default value-r солих
+-- Жнь: Хэрэв өгөгдлийн санд ямар ч захиалга байхгүй бол SUM(total) нь NULL буцаана. Үүнийг 0 болгоно
+
+/* Нууц үг хэшлэх, UUID үүсгэхэд зориулж pgcrypto өргөтгөлийг өгөгдлийн санд суулгана */
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ── Users ─────────────────────────────────────────────────────
+-- Хэрэглэгчдийн мэдээллийг хадгалах users хүсгэгт. Имэйл болон утасны дугаараар давхардахгүй байх (UNIQUE) хязгаарлалттай. 
 CREATE TABLE IF NOT EXISTS users (
   id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name    VARCHAR(255) NOT NULL,
   last_name     VARCHAR(255) NOT NULL,
   email         VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  salt          VARCHAR(255) NOT NULL,
-  role          VARCHAR(50)  NOT NULL DEFAULT 'customer',
+  salt          VARCHAR(255) NOT NULL, /* Нууц үг хамгаалахад ашигласан санамсаргүй salt */
+  role          VARCHAR(50)  NOT NULL DEFAULT 'customer', /* Хэрэглэгчийн үүрэг (customer эсвэл admin) */
   avatar_url    TEXT,
   phone         VARCHAR(30)  UNIQUE,
   created_at    TIMESTAMPTZ  DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  DEFAULT NOW()
 );
 
--- ── Sessions (connect-pg-simple) ──────────────────────────────
+-- Express session-г (session) өгөгдлийн санд хадгалах хүснэгт. connect-pg-simple санд зориулан стандарт бүтцээр үүсгэв.
 CREATE TABLE IF NOT EXISTS session (
-  sid    VARCHAR     NOT NULL COLLATE "default" PRIMARY KEY,
-  sess   JSON        NOT NULL,
-  expire TIMESTAMPTZ NOT NULL
+  sid    VARCHAR     NOT NULL COLLATE "default" PRIMARY KEY, /* session тодорхойлогч ID */
+  sess   JSON        NOT NULL, /* session дотор хадгалагдаж буй өгөгдлүүд (хэрэглэгчийн ID, үүрэг г.м) */
+  expire TIMESTAMPTZ NOT NULL /* session хүчинтэй байх хугацаа */
 );
+
 CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire);
 
--- ── Products ──────────────────────────────────────────────────
+-- Арьс арчилгааны бүтээгдэхүүний мэдээллийг хадгалах products хүснэгт. Үнэ болон үлдэгдэл тоо нь 0-ээс багагүй байх шалгах (CHECK) хязгаарлалттай.
 CREATE TABLE IF NOT EXISTS products (
   id             SERIAL       PRIMARY KEY,
-  slug           VARCHAR(255) UNIQUE NOT NULL,
+  slug           VARCHAR(255) UNIQUE NOT NULL, /* Вэб хаягт (URL) ашиглах бүтээгдэхүүний өвөрмөц нэр */
   brand          VARCHAR(255) NOT NULL,
   name           VARCHAR(500) NOT NULL,
   name_mn        VARCHAR(500),
@@ -38,7 +43,6 @@ CREATE TABLE IF NOT EXISTS products (
   image          VARCHAR(500),
   images         TEXT[]       DEFAULT '{}',
   badge          VARCHAR(100),
-  -- rating болон reviews_count нь reviews хүснэгтээс автоматаар тооцогдоно
   rating         DECIMAL(3,2) DEFAULT 0,
   reviews_count  INTEGER      DEFAULT 0,
   category       VARCHAR(100),
@@ -53,7 +57,7 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at     TIMESTAMPTZ  DEFAULT NOW()
 );
 
--- ── Orders ────────────────────────────────────────────────────
+-- Хэрэглэгчийн захиалгуудыг хадгалах orders хүсгэгт. Хэрэглэгч устсан ч захиалгын түүхийг хадгалж үлдэхийн тулд ON DELETE SET NULL ашигласан.
 CREATE TABLE IF NOT EXISTS orders (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number     VARCHAR(20) UNIQUE NOT NULL,
@@ -61,18 +65,19 @@ CREATE TABLE IF NOT EXISTS orders (
   items            JSONB       NOT NULL,
   total            INTEGER     NOT NULL CHECK (total >= 0),
   shipping_fee     INTEGER     NOT NULL DEFAULT 0,
-  delivery_method  VARCHAR(50) NOT NULL DEFAULT 'standard',
-  status           VARCHAR(50) NOT NULL DEFAULT 'pending',
+  delivery_method  VARCHAR(50) NOT NULL DEFAULT 'standard', /* Хүргэлтийн төрөл */
+  status           VARCHAR(50) NOT NULL DEFAULT 'pending', /* Захиалгын төлөв (pending, shipped, delivered г.м) */
   shipping_address JSONB,
   notes            TEXT,
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE INDEX IF NOT EXISTS idx_orders_user_id    ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status     ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
 
--- ── Cart Items ──────────────────────────────────────────────────
+-- Хэрэглэгчдийн сагсны мэдээллийг хадгалах cart_items хүснэгт. Нэг хэрэглэгч нэг барааг сагсандаа зөвхөн нэг удаа нэмэх ба дахин нэмбэл qty өснө. (UNIQUE)
 CREATE TABLE IF NOT EXISTS cart_items (
   id         UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID     REFERENCES users(id) ON DELETE CASCADE NOT NULL,
@@ -82,11 +87,10 @@ CREATE TABLE IF NOT EXISTS cart_items (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, product_id)
 );
+
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);
 
--- ── Reviews ───────────────────────────────────────────────────
--- Нэг хэрэглэгч нэг бараанд зөвхөн нэг удаа сэтгэгдэл үлдээнэ.
--- body: сэтгэгдлийн текст (comment → body болгов)
+-- Бүтээгдэхүүний сэтгэгдэл болон үнэлгээг хадгалах reviews хүснэгт. Үнэлгээ нь заавал 1-ээс 5-ын хооронд байна.
 CREATE TABLE IF NOT EXISTS reviews (
   id         UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID     REFERENCES users(id)    ON DELETE CASCADE NOT NULL,
@@ -97,35 +101,41 @@ CREATE TABLE IF NOT EXISTS reviews (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, product_id)
 );
+
+/* Бүтээгдэхүүний сэтгэгдлийг хурдан унших индекс */
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 
--- ── Login attempt log ──────────────────────────────────────────
+-- Нэвтрэх оролдлогуудыг бүртгэх login_attempts хүснэгт. Аюулгүй байдлыг хангах, брут-форс халдлагыг илрүүлэхэд ашиглана.
 CREATE TABLE IF NOT EXISTS login_attempts (
   id           SERIAL      PRIMARY KEY,
   identifier   VARCHAR(255) NOT NULL,
   attempted_at TIMESTAMPTZ  DEFAULT NOW(),
   success      BOOLEAN      DEFAULT FALSE
 );
+
 CREATE INDEX IF NOT EXISTS idx_login_attempts_id ON login_attempts(identifier, attempted_at DESC);
 
--- ── Updated_at автомат trigger ────────────────────────────────
+-- Хүснэгтийн өгөгдөл засагдах үед 'updated_at' баганыг одоогийн цагаар автоматаар шинэчлэх trigger функц.
 CREATE OR REPLACE FUNCTION fn_update_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$ LANGUAGE plpgsql;
 
+/* Хүснэгтүүдэд trigger-ийг холбоно (хэрэв үүсээгүй бол шинээр үүсгэнэ) */
 DO $$ BEGIN CREATE TRIGGER trg_users_ts    BEFORE UPDATE ON users    FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp(); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TRIGGER trg_products_ts BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp(); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TRIGGER trg_orders_ts   BEFORE UPDATE ON orders   FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp(); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TRIGGER trg_reviews_ts  BEFORE UPDATE ON reviews  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp(); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- ── Review-оос product-ийн rating автоматаар шинэчлэх trigger ─
+
+--  Сэтгэгдэл нэмэгдэх, засагдах эсвэл устгагдах үед бүтээгдэхүүний дундаж үнэлгээ болон нийт сэтгэгдлийн тоог (reviews_count, rating) автоматаар тооцоолж шинэчлэх trigger функц.
 CREATE OR REPLACE FUNCTION fn_update_product_rating()
 RETURNS TRIGGER AS $$
 DECLARE pid INTEGER;
 BEGIN
-  -- INSERT, UPDATE, DELETE бүгдэд зөв product_id авна
+  /* Шинээр нэмэгдсэн эсвэл устсан барааны ID-ийг тодорхойлно */
   pid := COALESCE(NEW.product_id, OLD.product_id);
+  /* Бүтээгдэхүүний хүснэгтэд шинэчилсэн дундаж утгуудыг хадгална */
   UPDATE products
   SET rating        = (SELECT COALESCE(AVG(rating::DECIMAL), 0) FROM reviews WHERE product_id = pid),
       reviews_count = (SELECT COUNT(*) FROM reviews WHERE product_id = pid),
@@ -135,6 +145,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+/* Сэтгэгдлийн хүснэгт дээр үнэлгээний trigger-ийг холбож идэвхжүүлнэ */
 DO $$ BEGIN
   CREATE TRIGGER trg_review_rating
     AFTER INSERT OR UPDATE OR DELETE ON reviews

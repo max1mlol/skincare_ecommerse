@@ -14,7 +14,7 @@ export const PRODUCTS = [
       "Дэлхийн зах зээлд хамгийн их борлуулалттай K-Beauty бүтээгдэхүүний нэг. 96% snail secretion filtrate агуулж, арьсны эдийг нөхөн сэргээнэ.",
     price: 89000,
     originalPrice: 112000, // Хямдрахаас өмнөх үнэ
-    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800",
+    image: "https://plus.unsplash.com/premium_photo-1776248370886-54400fff4b5c?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     badge: "Бестселлер", // Зураг дээр харагдах шошго
     rating: 4.9,
     reviews: 4280,

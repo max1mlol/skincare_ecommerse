@@ -10,19 +10,12 @@ const { Pool } = require('pg');
 const connStr = process.argv[2];
 if (!connStr) {
   console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║        AURA SKIN — Neon Cloud DB Setup                       ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
-║  1. https://neon.tech → бүртгэл үүсгэх                      ║
-║  2. New Project → auraskin → Asia Pacific (Singapore)        ║
-║  3. Dashboard → Connection string → копи                     ║
-║  4. Доорх командыг ажиллуулах:                               ║
-║                                                              ║
-║  node scripts/setup-neon.js "postgresql://user:pass@..."     ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-`);
+    1. https://neon.tech → бүртгэл үүсгэх
+    2. New Project → auraskin → Asia Pacific (Singapore)
+    3. Dashboard → Connection string → копи
+    4. Доорх командыг ажиллуулах:
+    node scripts/setup-neon.js "postgresql://user:pass@..."
+  `);
   process.exit(0);
 }
 
@@ -32,9 +25,9 @@ async function main() {
 
   try {
     await pool.query('SELECT 1');
-    console.log('✅ Холболт амжилттай!');
+    console.log('Холболт амжилттай!');
   } catch (e) {
-    console.error('❌ Холболт амжилтгүй:', e.message);
+    console.error('Холболт амжилтгүй:', e.message);
     process.exit(1);
   }
 
@@ -43,17 +36,17 @@ async function main() {
   const schema     = fs.readFileSync(schemaPath, 'utf8');
   console.log('📦 Schema үүсгэж байна...');
   await pool.query(schema);
-  console.log('✅ Schema амжилттай!');
+  console.log('Schema амжилттай!');
 
   // .env файл шинэчлэх
   const envPath    = path.join(__dirname, '../.env');
   let   envContent = fs.readFileSync(envPath, 'utf8');
   envContent = envContent.replace(/^DATABASE_URL=.*/m, `DATABASE_URL=${connStr}`);
   fs.writeFileSync(envPath, envContent);
-  console.log('✅ .env файл шинэчлэгдлээ');
+  console.log('.env файл шинэчлэгдлээ');
 
   // Seed хийх эсэхийг асуух
-  console.log('\n⏳ Бараа оруулж байна...');
+  console.log('\Бараа оруулж байна...');
   const { Pool: Pool2 } = require('pg');
   process.env.DATABASE_URL = connStr;
 
