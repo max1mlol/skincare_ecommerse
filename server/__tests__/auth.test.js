@@ -4,7 +4,7 @@ const request = require('supertest');
 const app = require('../src/index');
 const { hashPassword, verifyPassword } = require('../src/routes/auth');
 const { query: db } = require('../src/config/db');
-const { TEST_PASSWORD, uniqueUser, cleanupTestUsers } = require('./helpers');
+const { TEST_PASSWORD, uniqueUser, cleanupTestUsers, closeTestDb } = require('./helpers');
 
 const agent = () => request.agent(app);
 
@@ -142,4 +142,8 @@ describe('GET /api/auth/me', () => {
     const res = await agent().get('/api/auth/me').expect(401);
     expect(res.body.user).toBeNull();
   });
+});
+
+afterAll(async () => {
+  await closeTestDb();
 });

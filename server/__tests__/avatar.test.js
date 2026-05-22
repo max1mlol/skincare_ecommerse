@@ -4,7 +4,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const request = require('supertest');
 const app = require('../src/index');
-const { uniqueUser, cleanupTestUsers } = require('./helpers');
+const { uniqueUser, cleanupTestUsers, closeTestDb } = require('./helpers');
 
 const FIXTURE = path.join(__dirname, 'fixtures', 'test-avatar.png');
 
@@ -16,7 +16,10 @@ describe('POST /api/users/:id/avatar', () => {
   });
 
   beforeEach(() => cleanupTestUsers());
-  afterAll(() => cleanupTestUsers());
+  afterAll(async () => {
+    await cleanupTestUsers();
+    await closeTestDb();
+  });
 
   it('uploads avatar and returns updated user (success)', async () => {
     const u = uniqueUser();

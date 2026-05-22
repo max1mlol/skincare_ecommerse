@@ -4,13 +4,15 @@
 const { Pool } = require('pg');
 
 // Neon өгөгдлийн сан мөн эсэх болон SSL шаардлагатай эсэхийг илрүүлэх логик
-const isNeon = (process.env.DATABASE_URL ?? '').includes('neon.tech');
-const isCloud = isNeon || process.env.DATABASE_URL?.includes('sslmode=require');
+const rawDatabaseUrl = process.env.DATABASE_URL ?? '';
+const connectionString = rawDatabaseUrl.replace('sslmode=require', 'sslmode=verify-full');
+const isNeon = rawDatabaseUrl.includes('neon.tech');
+const isCloud = isNeon || /sslmode=(require|verify-full)/.test(rawDatabaseUrl);
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   // Үүлэн (Neon) санд холбогдоход SSL ашиглаж, локал сан ашиглах үед SSL шаардахгүй
-  ssl: isCloud ? { rejectUnauthorized: false } : false,
+  ssl: isCloud,
   max:                     isCloud ? 5 : 20, // Үүлэн сангийн холболтын тоог хязгаарлах (Neon холболтын дээд хязгаартай)
   idleTimeoutMillis:       30_000,           // Холболт сул (идэвхгүй) байж болох дээд хугацаа (миллисекунд)
   connectionTimeoutMillis: 5_000,            // Шинэ холболт үүсгэхэд хүлээх дээд хугацаа

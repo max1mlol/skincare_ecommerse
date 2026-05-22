@@ -8,7 +8,7 @@
     "start":       "node src/index.js",
     "seed":        "node scripts/seed.js",
     "setup-neon":  "node scripts/setup-neon.js",
-    "test":        "jest --runInBand --forceExit",
+    "test":        "jest --runInBand",
     "lint":        "eslint src __tests__"
   },
   "dependencies": {
@@ -32,8 +32,8 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "testTimeout": 30000,
     "testMatch": ["**/__tests__/**/*.test.js"],
-    "setupFiles": ["<rootDir>/__tests__/setup.js"],
-    "globalTeardown": "<rootDir>/__tests__/globalTeardown.js"
+    "setupFiles": ["<rootDir>/__tests__/setup.js"]
   }
 }

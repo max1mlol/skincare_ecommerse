@@ -14,7 +14,7 @@
 // useState, useEffect: төлөв удирдах, өгөгдөл татах
 import { useState, useEffect, use } from "react";
 import Image from "next/image";
-import { getImageUrl } from "@/lib/utils";
+import { FALLBACK_IMAGE, getImageUrl } from "@/lib/utils";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useSession } from "@/context/SessionContext";
@@ -37,6 +37,20 @@ import Footer from "@/components/Footer";
 
 // Сагсны Context
 import { useCart } from "@/context/CartContext";
+
+function getProductImages(product) {
+  return Array.from(
+    new Set([product?.image, ...(product?.images || [])].filter((img) => typeof img === "string" && img.trim()))
+  );
+}
+
+function getPrimaryImage(product) {
+  return getProductImages(product)[0] || FALLBACK_IMAGE;
+}
+
+function handleImageError(e) {
+  e.currentTarget.src = FALLBACK_IMAGE;
+}
 
 
 // ── ProductDetailPage үндсэн компонент ───────────────────────────────────────
@@ -68,6 +82,7 @@ export default function ProductDetailPage({ params }) {
         // DB-с ирсэн key-үүдийг frontend-ийн формат руу хөрвүүлэх
         const mapped = {
           ...p,
+          image: getPrimaryImage(p),
           nameMn: p.name_mn || p.name,
           originalPrice: p.original_price,
           inStock: p.in_stock,
@@ -95,7 +110,11 @@ export default function ProductDetailPage({ params }) {
       .then(res => res.json())
       .then(d => {
          const rel = (d.products || []).map(p => ({
-           ...p, nameMn: p.name_mn || p.name, originalPrice: p.original_price, categoryMn: p.category_mn
+           ...p,
+           image: getPrimaryImage(p),
+           nameMn: p.name_mn || p.name,
+           originalPrice: p.original_price,
+           categoryMn: p.category_mn
          }));
          setRelated(rel.filter(r => r.slug !== slug).slice(0, 3));
       })
@@ -104,7 +123,7 @@ export default function ProductDetailPage({ params }) {
   }, [slug]);
 
   if (error) notFound();
-  if (loading || !product) {
+  if (loading || !product || product.slug !== slug) {
     return (
       <>
         <Navbar />
@@ -214,6 +233,7 @@ export default function ProductDetailPage({ params }) {
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
+                  onError={handleImageError}
                   priority // Зургийг хурдан ачаалах (LCP)
                 />
                 {product.badge && (
@@ -222,7 +242,7 @@ export default function ProductDetailPage({ params }) {
               </div>
               {/* Жижиг зургууд (Thumbnails) */}
               {(() => {
-                const allImages = Array.from(new Set([product.image, ...(product.images || [])])).filter(Boolean);
+                const allImages = getProductImages(product);
                 if (allImages.length > 0) {
                   return (
                     <div className="flex gap-3 overflow-x-auto pb-2">
@@ -234,7 +254,14 @@ export default function ProductDetailPage({ params }) {
                             activeImage === img ? "border-foreground" : "border-foreground/10 hover:border-foreground/40"
                           }`}
                         >
-                          <Image src={getImageUrl(img)} alt={`thumbnail ${idx + 1}`} fill className="object-cover" />
+                          <Image
+                            src={getImageUrl(img)}
+                            alt={`thumbnail ${idx + 1}`}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            onError={handleImageError}
+                          />
                         </button>
                       ))}
                     </div>
@@ -423,7 +450,14 @@ export default function ProductDetailPage({ params }) {
                 {related.map((p) => (
                   <Link key={p.id} href={`/products/${p.slug}`} className="group">
                     <div className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden mb-3 border border-border/40">
-                      <Image src={getImageUrl(p.image)} alt={p.nameMn} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <Image
+                        src={getImageUrl(p.image)}
+                        alt={p.nameMn}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 33vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={handleImageError}
+                      />
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] mb-1">{p.categoryMn}</p>
                     <p className="text-sm font-medium text-foreground group-hover:underline underline-offset-2">{p.nameMn}</p>

@@ -27,4 +27,8 @@ async function cleanupTestUsers(emailPattern = '%@auraskin.test') {
   await pool.query(`DELETE FROM users WHERE email LIKE $1`, [emailPattern]);
 }
 
-module.exports = { TEST_PASSWORD, uniqueUser, cleanupTestUsers };
+async function closeTestDb() {
+  await pool.end();
+}
+
+module.exports = { TEST_PASSWORD, uniqueUser, cleanupTestUsers, closeTestDb };
