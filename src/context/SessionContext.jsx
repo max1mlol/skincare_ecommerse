@@ -6,6 +6,21 @@ import { announce } from "@/lib/announcer";
 
 const Ctx = createContext(null);
 
+async function readApiJson(res) {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      error: res.ok
+        ? "Серверээс буруу форматтай хариу ирлээ"
+        : text.slice(0, 160),
+    };
+  }
+}
+
 export function SessionProvider({ children }) {
   // undefined → ачаалж байна | null → нэвтрээгүй | object → нэвтэрсэн хэрэглэгч
   const [user,    setUser]    = useState(undefined);
@@ -15,7 +30,7 @@ export function SessionProvider({ children }) {
   const refetch = useCallback(async () => {
     try {
       const res  = await fetch("/api/auth/me", { credentials: "include" });
-      const data = await res.json();
+      const data = await readApiJson(res);
       setUser(data.user ?? null);
     } catch {
       setUser(null);
@@ -36,7 +51,7 @@ export function SessionProvider({ children }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, password }),
     });
-    const data = await res.json();
+    const data = await readApiJson(res);
     if (!res.ok) {
       announce(data.error || "Нэвтрэх үйлдэл амжилтгүй боллоо", "assertive");
       throw new Error(data.error || "Нэвтрэх үйлдэл амжилтгүй боллоо");
@@ -53,7 +68,7 @@ export function SessionProvider({ children }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ firstName, lastName, phone, email, password }),
     });
-    const data = await res.json();
+    const data = await readApiJson(res);
     if (!res.ok) {
       const errMsg = data.errors?.[0]?.msg ?? data.error ?? "Бүртгэл амжилтгүй боллоо";
       announce(errMsg, "assertive");

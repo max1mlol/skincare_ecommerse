@@ -1,33 +1,25 @@
-'use strict'; // JavaScript-ийн strict горимыг идэвхжүүлж, алдаа гаргахаас сэргийлж, илүү найдвартай код бичих нөхцөлийг бүрдүүлнэ
+'use strict';
 
-// Энэхүү файл нь серверийг DDoS болон нууц үг таах халдлагаас хамгаалах хурд хязгаарлах (rate-limiting) middleware-ийг тодорхойлно.
-const rateLimit = require('express-rate-limit'); // Хүсэлтийн хурдыг хязгаарлах express-rate-limit санг оруулж ирнэ
+const rateLimit = require('express-rate-limit');
 
-/**
- * loginLimiter - Нэвтрэх заманд зориулсан хурд хязгаарлагч.
- * Хэрэглэгч богино хугацаанд олон удаа буруу нэвтрэх оролдлого хийхээс сэргийлнэ.
- */
+// Login brute-force оролдлогоос хамгаална: 15 минутанд 5 failed request.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // Цонхыг 15 минут болгож тохируулна
-  max: 5, // 15 минутын хугацаанд хамгийн ихдээ 5 удаа оролдох эрх өгнө
-  message: { error: 'Хэт олон удаа нэвтрэх оролдлого хийлээ. 15 минут хүлээнэ үү.' }, // Хязгаар хэтэрсэн үед буцах JSON алдааны мэдэгдэл
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Хэт олон удаа нэвтрэх оролдлого хийлээ. 15 минут хүлээнэ үү.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.body?.email || req.ip), // Хязгаарлалтыг хэрэглэгчийн имэйл хаягаар, хэрэв байхгүй бол IP хаягаар нь тооцож ялгана
-  skipSuccessfulRequests: true, // Амжилттай нэвтэрсэн оролдлогуудыг тоолуурт оруулахгүй алгасна
+  keyGenerator: (req) => (req.body?.email || req.ip),
+  skipSuccessfulRequests: true,
 });
 
-/**
- * apiLimiter - Ерөнхий API endpoint-уудад тавих хязгаарлалт.
- * Сервер ачаалахаас сэргийлж хэрэглэгчийн ирүүлэх хүсэлтийг хязгаарлана.
- */
+// Ерөнхий API ачааллыг нэг IP дээр минутанд 100 request-ээр хязгаарлана.
 const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // Хянах хугацааг 1 минут (60,000 миллисекунд) болгож тохируулна
-  max: 100, // 1 минутад тухайн IP-аас ирэх хүсэлтийг хамгийн ихдээ 100 байхаар хязгаарлана
-  message: { error: 'Хэт олон хүсэлт илгээлээ. Түр хүлээгээд дахин оролдоно уу.' }, // Хязгаар хэтэрсэн үед буцах JSON алдааны мэдэгдэл
-  standardHeaders: true, // Стандарт RateLimit мэдээллийг хариуны толгойд илгээнэ
-  legacyHeaders: false, // Хуучин X-RateLimit толгойнуудыг идэвхгүй болгоно
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Хэт олон хүсэлт илгээлээ. Түр хүлээгээд дахин оролдоно уу.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Бусад хэсэгт ашиглахын тулд хязгаарлагчдыг экспортолно
 module.exports = { loginLimiter, apiLimiter };
