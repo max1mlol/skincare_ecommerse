@@ -9,7 +9,7 @@ import { useSession } from "@/context/SessionContext";
 import Navbar  from "@/components/Navbar";
 import Footer  from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getImageUrl } from "@/lib/utils";
+import { getAvatarUrl } from "@/lib/utils";
 
 // Захиалгын статусаас хамаарч өөр өөр өнгөөр харуулах
 const STATUS_COLOR = {
@@ -78,7 +78,7 @@ export default function MyOrdersPage() {
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
                 <div className="relative">
                   <Avatar className="w-12 h-12 border border-border">
-                    <AvatarImage src={getImageUrl(user.avatar_url)} alt={user.name} className="object-cover" />
+                    <AvatarImage src={getAvatarUrl(user.avatar_url)} alt={user.name} className="object-cover" />
                     <AvatarFallback className="bg-foreground text-background font-bold text-sm">
                       {initials}
                     </AvatarFallback>

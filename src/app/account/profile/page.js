@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import Navbar        from "@/components/Navbar";
 import Footer        from "@/components/Footer";
-import { getImageUrl } from "@/lib/utils";
+import { getAvatarUrl } from "@/lib/utils";
 import { announce } from "@/lib/announcer";
 
 export default function ProfilePage() {
@@ -129,7 +129,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
                 <div className="relative">
                   <Avatar className="w-12 h-12 border border-border">
-                    <AvatarImage src={getImageUrl(user.avatar_url)} alt={user.name} className="object-cover" />
+                    <AvatarImage src={getAvatarUrl(user.avatar_url)} alt={user.name} className="object-cover" />
                     <AvatarFallback className="bg-foreground text-background font-bold text-sm">
                       {initials}
                     </AvatarFallback>

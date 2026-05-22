@@ -18,6 +18,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:400
 export const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800";
 
+export const DEFAULT_AVATAR_IMAGE = "/default-avatar.svg";
+
 /**
  * getImageUrl — зургийн замыг зөв URL болгоно.
  * /uploads/... → /uploads/... (харьцангуй зам — Next.js rewrite→Express)
@@ -51,4 +53,11 @@ export function getImageUrl(src) {
 
   if (/^https?:\/\//i.test(value)) return value;
   return FALLBACK_IMAGE;
+}
+
+export function getAvatarUrl(src) {
+  if (!src || typeof src !== "string") return DEFAULT_AVATAR_IMAGE;
+  const value = src.trim();
+  if (!value) return DEFAULT_AVATAR_IMAGE;
+  return getImageUrl(value);
 }

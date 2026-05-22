@@ -14,7 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { getImageUrl } from "@/lib/utils";
+import { getAvatarUrl } from "@/lib/utils";
 
 // Вэбсайтын үндсэн бүтээгдэхүүний ангилалууд
 const CATEGORIES = [
@@ -48,7 +48,7 @@ function AvatarCircle({ user, size = 32 }) {
   const initials = getInitials(user?.name);
   return (
     <Avatar style={{ width: size, height: size }}>
-      <AvatarImage src={getImageUrl(user?.avatar_url)} alt={user?.name ?? "Avatar"} className="object-cover" />
+      <AvatarImage src={getAvatarUrl(user?.avatar_url)} alt={user?.name ?? "Avatar"} className="object-cover" />
       <AvatarFallback className="bg-foreground text-background font-semibold" style={{ fontSize: size * 0.35 }}>
         {initials}
       </AvatarFallback>
