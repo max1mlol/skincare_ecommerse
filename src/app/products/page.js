@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // lucide-react icon-ууд
-import { Search, SlidersHorizontal, X, ShoppingBag, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal, X, ShoppingBag, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 
 // UI компонентууд
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ import { SORT_OPTIONS, SKINCARE_ROUTINE, BRANDS, SKIN_TYPES, SKIN_CONCERNS } fro
 
 // Хамгийн дээд үнэ (Slider-т ашиглана)
 const MAX_PRICE = 200000;
+const PRODUCTS_PER_PAGE = 12;
 
 // ── FilterSection компонент ──────────────────────────────────────────────────
 // Шүүлтүүрийн бүлгүүдийг (Брэнд, Үнэ гэх мэт) эвхэж нээх боломжтой болгоно.
@@ -213,6 +214,7 @@ function ProductsPage() {
   const searchParams = useSearchParams();
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetch("/api/products?limit=1000")
@@ -251,8 +253,24 @@ function ProductsPage() {
     brands: searchParams.get("brand") ? [searchParams.get("brand")] : [],
   }));
 
+  const updateSearch = useCallback((value) => {
+    setCurrentPage(1);
+    setSearch(value);
+  }, []);
+
+  const updateSort = useCallback((value) => {
+    setCurrentPage(1);
+    setSort(value);
+  }, []);
+
+  const updateFilters = useCallback((next) => {
+    setCurrentPage(1);
+    setFilters(next);
+  }, []);
+
   // Шүүлтүүрүүдийг арилгах функц (useCallback: оновчлол)
   const resetFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(DEFAULT_FILTERS);
     setSearch("");
   }, []);
@@ -327,6 +345,39 @@ function ProductsPage() {
     return result;
   }, [search, filters, sort, dbProducts]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const visiblePages = Array.from(pages)
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+    return visiblePages.reduce((items, page, index) => {
+      if (index > 0 && page - visiblePages[index - 1] > 1) {
+        items.push(`ellipsis-${page}`);
+      }
+      items.push(page);
+      return items;
+    }, []);
+  }, [currentPage, totalPages]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+  const firstProductIndex = filteredProducts.length ? (currentPage - 1) * PRODUCTS_PER_PAGE + 1 : 0;
+  const lastProductIndex = Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length);
+
+  const goToPage = useCallback((page) => {
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    setCurrentPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [totalPages]);
+
   return (
     <>
       <Navbar />
@@ -363,11 +414,11 @@ function ProductsPage() {
                 type="search"
                 placeholder="Бараа, брэнд хайх..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => updateSearch(e.target.value)}
                 className="pl-10 rounded-full border-border text-sm h-9"
               />
               {search && (
-                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <button onClick={() => updateSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   <X size={14} />
                 </button>
               )}
@@ -379,7 +430,7 @@ function ProductsPage() {
                 <select
                   id="products-sort"
                   value={sort}
-                  onChange={(e) => setSort(e.target.value)}
+                  onChange={(e) => updateSort(e.target.value)}
                   className="appearance-none border border-border bg-background text-foreground text-sm px-4 py-2 pr-8 rounded-lg focus:outline-none focus:border-foreground cursor-pointer"
                 >
                   {SORT_OPTIONS.map((o) => (
@@ -406,7 +457,7 @@ function ProductsPage() {
                   <SheetHeader className="mb-6">
                     <SheetTitle className="text-xl">Шүүлт</SheetTitle>
                   </SheetHeader>
-                  <FilterPanel filters={filters} onChange={setFilters} onReset={resetFilters} />
+                  <FilterPanel filters={filters} onChange={updateFilters} onReset={resetFilters} />
                 </SheetContent>
               </Sheet>
             </div>
@@ -418,7 +469,7 @@ function ProductsPage() {
               {filters.brands.map((b) => (
                 <span key={b} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {b}
-                  <button onClick={() => setFilters((p) => ({ ...p, brands: p.brands.filter((x) => x !== b) }))}>
+                  <button onClick={() => updateFilters((p) => ({ ...p, brands: p.brands.filter((x) => x !== b) }))}>
                     <X size={11} />
                   </button>
                 </span>
@@ -428,25 +479,25 @@ function ProductsPage() {
               {filters.skinTypes.map((t) => (
                 <span key={t} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {t}
-                  <button onClick={() => setFilters((p) => ({ ...p, skinTypes: p.skinTypes.filter((x) => x !== t) }))}><X size={11} /></button>
+                  <button onClick={() => updateFilters((p) => ({ ...p, skinTypes: p.skinTypes.filter((x) => x !== t) }))}><X size={11} /></button>
                 </span>
               ))}
               {filters.skinConcerns.map((c) => (
                 <span key={c} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {c}
-                  <button onClick={() => setFilters((p) => ({ ...p, skinConcerns: p.skinConcerns.filter((x) => x !== c) }))}><X size={11} /></button>
+                  <button onClick={() => updateFilters((p) => ({ ...p, skinConcerns: p.skinConcerns.filter((x) => x !== c) }))}><X size={11} /></button>
                 </span>
               ))}
               {filters.subcategories.map((s) => (
                 <span key={s} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {s}
-                  <button onClick={() => setFilters((p) => ({ ...p, subcategories: p.subcategories.filter((x) => x !== s) }))}><X size={11} /></button>
+                  <button onClick={() => updateFilters((p) => ({ ...p, subcategories: p.subcategories.filter((x) => x !== s) }))}><X size={11} /></button>
                 </span>
               ))}
               {(filters.minPrice > 0 || filters.maxPrice < MAX_PRICE) && (
                 <span className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {filters.minPrice.toLocaleString("mn-MN")}₮–{filters.maxPrice.toLocaleString("mn-MN")}₮
-                  <button onClick={() => setFilters((p) => ({ ...p, minPrice: 0, maxPrice: MAX_PRICE }))}><X size={11} /></button>
+                  <button onClick={() => updateFilters((p) => ({ ...p, minPrice: 0, maxPrice: MAX_PRICE }))}><X size={11} /></button>
                 </span>
               )}
             </div>
@@ -465,7 +516,7 @@ function ProductsPage() {
                     </button>
                   )}
                 </div>
-                <FilterPanel filters={filters} onChange={setFilters} onReset={resetFilters} />
+                <FilterPanel filters={filters} onChange={updateFilters} onReset={resetFilters} />
               </div>
             </aside>
 
@@ -483,11 +534,70 @@ function ProductsPage() {
                 </div>
               ) : (
                 // Барааны жагсаалт
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-stretch">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
+                <>
+                  <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>
+                      {firstProductIndex}-{lastProductIndex} / {filteredProducts.length}
+                    </span>
+                    <span>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-stretch">
+                    {paginatedProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Products pagination">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="h-9 rounded-lg px-3"
+                      >
+                        <ChevronLeft size={14} />
+                        Prev
+                      </Button>
+
+                      {paginationItems.map((item) => (
+                        typeof item === "number" ? (
+                          <Button
+                            key={item}
+                            type="button"
+                            variant={item === currentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => goToPage(item)}
+                            className="h-9 w-9 rounded-lg p-0"
+                            aria-current={item === currentPage ? "page" : undefined}
+                          >
+                            {item}
+                          </Button>
+                        ) : (
+                          <span key={item} className="flex h-9 w-9 items-center justify-center text-sm text-muted-foreground">
+                            ...
+                          </span>
+                        )
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="h-9 rounded-lg px-3"
+                      >
+                        Next
+                        <ChevronRight size={14} />
+                      </Button>
+                    </nav>
+                  )}
+                </>
               )}
             </div>
           </div>

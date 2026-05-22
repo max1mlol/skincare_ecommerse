@@ -1,6 +1,7 @@
 'use strict'; // JavaScript-ийн strict горимыг идэвхжүүлж, алдаа гаргахаас сэргийлж, илүү найдвартай код бичих нөхцөлийг бүрдүүлнэ
 
 // Энэ файл нь бүтээгдэхүүний CRUD үйлдлүүд, хайлт, шүүлтүүр болон зураг хуулах (upload) API замуудыг тодорхойлно
+const fs     = require('node:fs'); // Upload хавтас байхгүй үед автоматаар үүсгэхэд ашиглана
 const path   = require('node:path'); // Файлын систем болон хавтасны замуудтай ажиллах Node-ийн path модуль
 const router = require('express').Router(); // Express-ийн Router-ийг дуудаж бүтээгдэхүүний замуудыг тодорхойлно
 const multer = require('multer'); // Файл болон зураг хүлээн авахад ашиглах multer сан
@@ -9,8 +10,11 @@ const { query: db }    = require('../config/db'); // Өгөгдлийн сант
 const { requireAdmin } = require('../middleware/auth'); // Зөвхөн админ хандахыг шаардах middleware
 
 // 1. Multer тохиргоо: Бүтээгдэхүүний зургийг 'uploads/products' хавтаст хадгалах ба нэрийг цаг хугацааны тамгаар давхцуулахгүй үүсгэнэ
+const PRODUCT_UPLOAD_DIR = path.join(__dirname, '../../uploads/products');
+fs.mkdirSync(PRODUCT_UPLOAD_DIR, { recursive: true });
+
 const imgStorage = multer.diskStorage({
-  destination: path.join(__dirname, '../../uploads/products'), // Зураг хадгалагдах хавтасны бүтэн замыг заана
+  destination: PRODUCT_UPLOAD_DIR, // Зураг хадгалагдах хавтасны бүтэн замыг заана
   filename:    (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`), // Зайнуудыг доогуур зураасаар солино
 });
 
@@ -20,7 +24,7 @@ const upload = multer({
   limits:     { fileSize: 5 * 1024 * 1024 }, // Файлын дээд хэмжээг 5MB байхаар хязгаарлана
   fileFilter: (_req, file, cb) => {
     // Зөвхөн jpeg, png, webp форматын зураг оруулахыг зөвшөөрнө
-    if (/image\/(jpeg|png|webp)/.test(file.mimetype)) return cb(null, true); // Формат таарвал зөвшөөрнө
+    if (/^image\/(jpeg|png|webp)$/i.test(file.mimetype)) return cb(null, true); // Формат таарвал зөвшөөрнө
     cb(new Error('Зөвхөн JPEG, PNG, WebP форматтай зураг оруулах боломжтой')); // Буруу формат байвал алдаа буцаана
   },
 });
@@ -40,17 +44,30 @@ function toSlug(text) {
 // PROD_SELECT: SQL дээр бүтээгдэхүүний өгөгдлийг уншихад ашиглах үндсэн SELECT хүсэлт. Сэтгэгдлийн тоо болон дундаж үнэлгээг дэд хүсэлтээр холбоно.
 const PROD_SELECT = `
   SELECT p.id, p.slug, p.brand, p.name, p.name_mn, p.description, p.price, p.original_price, 
-         p.image, p.badge, p.category, p.category_mn, p.skin_types, p.skin_concerns, p.tags, 
+         p.image, p.images, p.badge, p.category, p.category_mn, p.skin_types, p.skin_concerns, p.tags, 
          p.in_stock, p.stock_qty, p.how_to_use, p.ingredients, p.created_at, p.updated_at,
          COALESCE((SELECT /* Сэтгэгдлийг тоолох дэд SQL */ COUNT(*)::int FROM reviews r WHERE r.product_id = p.id), 0) as reviews_count,
          COALESCE((SELECT /* Дундаж үнэлгээг тооцоолох дэд SQL */ ROUND(AVG(rating), 1)::float FROM reviews r WHERE r.product_id = p.id), 0) as rating
   FROM products p
 `;
 
+function normalizeImages(images, mainImage) {
+  const list = Array.isArray(images) ? images : [];
+  return Array.from(new Set([mainImage, ...list].filter((img) => typeof img === 'string' && img.trim()).map((img) => img.trim())));
+}
+
+const parsePositiveInt = (value, fallback, max = Number.MAX_SAFE_INTEGER) => {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+};
+
 // GET /api/products - Бүтээгдэхүүнүүдийг шүүлтүүр, эрэмбэ болон хуудаслалттайгаар унших
 router.get('/', async (req, res, next) => {
   try {
     const { cat, brand, skinType, concern, inStock, sort, page = 1, limit = 20, q } = req.query; // Шүүх параметрүүдийг уншина
+    const currentPage = parsePositiveInt(page, 1);
+    const pageSize = parsePositiveInt(limit, 20, 1000);
     const conds = []; const vals = []; let i = 1; // SQL хайлтын нөхцөлүүд болон утгуудыг хадгалах массивууд
     
     // Ирүүлсэн параметр тус бүрээр SQL хайлтын нөхцөл (WHERE clause)-ийг бэлтгэнэ
@@ -67,14 +84,24 @@ router.get('/', async (req, res, next) => {
     
     const where   = conds.length ? `WHERE ${conds.join(' AND ')}` : ''; // Шүүх нөхцөлүүдийг AND-оор холбож тэмдэгт мөр үүсгэнэ
     const orderBy = { 'price-asc':'price ASC', 'price-desc':'price DESC', rating:'rating DESC', newest:'created_at DESC' }[sort] || 'id ASC'; // Эрэмбэлэх дүрмийг онооно
-    const offset  = (Math.max(1, parseInt(page)) - 1) * parseInt(limit); // Хуудаслалтын зөрүү offset индексийг тооцоолно
+    const offset  = (currentPage - 1) * pageSize; // Хуудаслалтын зөрүү offset индексийг тооцоолно
     
     // Бүтээгдэхүүний жагсаалт болон нийт тоог нэгэн зэрэг уншина
     const [data, count] = await Promise.all([
-      db(`/* Бүтээгдэхүүний жагсаалтыг шүүж, хуудаслаж авах SQL */ ${PROD_SELECT} ${where} ORDER BY ${orderBy} LIMIT $${i} OFFSET $${i+1}`, [...vals, parseInt(limit), offset]),
+      db(`/* Бүтээгдэхүүний жагсаалтыг шүүж, хуудаслаж авах SQL */ ${PROD_SELECT} ${where} ORDER BY ${orderBy} LIMIT $${i} OFFSET $${i+1}`, [...vals, pageSize, offset]),
       db(`/* Шүүсэн нийт бүтээгдэхүүнийг тоолох SQL */ SELECT COUNT(*) FROM products p ${where}`, vals),
     ]);
-    return res.json({ products: data.rows, total: parseInt(count.rows[0].count), page: parseInt(page), limit: parseInt(limit) }); // Хуудасласан үр дүнг буцаана
+    const total = parseInt(count.rows[0].count, 10);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return res.json({
+      products: data.rows,
+      total,
+      page: currentPage,
+      limit: pageSize,
+      totalPages,
+      hasPrevPage: currentPage > 1,
+      hasNextPage: currentPage < totalPages,
+    }); // Хуудасласан үр дүнг буцаана
   } catch (err) { 
     next(err); // Алдааг дамжуулна
   }
@@ -113,10 +140,12 @@ router.post('/', requireAdmin, [
     if (!errs.isEmpty()) return res.status(400).json({ errors: errs.array() }); // Алдаа байвал 400 буцаана
     const {
       name, name_mn, brand, description, price, original_price,
-      image, badge, category = 'serum', category_mn, how_to_use,
+      image, images = [], badge, category = 'serum', category_mn, how_to_use,
       ingredients, skin_types = [], skin_concerns = [], tags = [],
       in_stock = true, stock_qty = 0,
     } = req.body; // Ирүүлсэн утгуудыг авна
+    const productImages = normalizeImages(images, image);
+    const mainImage = productImages[0] ?? null;
     
     const baseSlug = toSlug(name_mn || name); // Монгол эсвэл Англи нэрнээс үндсэн slug үүсгэнэ
     const { rows: existing } = await db('/* Давхцах slug байгаа эсэхийг унших SQL */ SELECT slug FROM products WHERE slug = $1', [baseSlug]); // Slug давхцаж байгаа эсэхийг шалгана
@@ -125,11 +154,11 @@ router.post('/', requireAdmin, [
     const { rows } = await db( // Өгөгдлийн санд шинэ бүтээгдэхүүн нэмнэ
       `/* Шинэ бүтээгдэхүүн нэмж оруулах SQL */
        INSERT INTO products
-         (slug,brand,name,name_mn,description,price,original_price,image,badge,
+         (slug,brand,name,name_mn,description,price,original_price,image,images,badge,
           category,category_mn,skin_types,skin_concerns,tags,in_stock,stock_qty,how_to_use,ingredients)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
-      [slug,brand,name,name_mn,description,price,original_price??null,image??null,badge??null,
+      [slug,brand,name,name_mn,description,price,original_price??null,mainImage,productImages,badge??null,
        category,category_mn??category,skin_types,skin_concerns,tags,in_stock,stock_qty,how_to_use??null,ingredients??null]
     );
     return res.status(201).json({ product: rows[0] }); // Үүссэн бүтээгдэхүүнийг буцаана
@@ -142,8 +171,14 @@ router.post('/', requireAdmin, [
 // PATCH /api/products/:idOrSlug - Бүтээгдэхүүний мэдээлэл засах (Админ-only)
 router.patch('/:idOrSlug', requireAdmin, async (req, res, next) => {
   try {
+    if (req.body.images !== undefined || req.body.image !== undefined) {
+      const productImages = normalizeImages(req.body.images, req.body.image);
+      req.body.images = productImages;
+      req.body.image = productImages[0] ?? null;
+    }
+
     const ALLOWED = ['brand','name','name_mn','description','price','original_price',
-                     'image','badge','category','category_mn','skin_types','skin_concerns',
+                     'image','images','badge','category','category_mn','skin_types','skin_concerns',
                      'tags','in_stock','stock_qty','how_to_use','ingredients']; // Засахыг зөвшөөрсөн талбарууд
     const sets = []; const vals = []; let i = 1; // SQL SET илэрхийлэл болон утгын параметрүүд
     for (const key of ALLOWED) {

@@ -7,6 +7,7 @@ import { SessionProvider } from "@/context/SessionContext";
 import { ThemeProvider }   from "@/components/ThemeProvider";
 import { SearchPalette }   from "@/components/SearchPalette";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import A11yLiveRegion from "@/components/A11yLiveRegion";
 
 // Google fonts-оос Geist болон Geist Mono фонтуудыг ачаалах
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
               {/* SearchPalette: "/" товчоор нээгдэх глобал хайлт */}
               <SearchPalette />
               <TooltipProvider>
+                <A11yLiveRegion />
                 {children}
               </TooltipProvider>
             </CartProvider>

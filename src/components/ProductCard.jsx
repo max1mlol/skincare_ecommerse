@@ -14,7 +14,7 @@ import { Plus } from "lucide-react";
 // useCart: CartContext.jsx дотор үүсгэсэн custom hook.
 //          addItem функцийг авч барааг сагсанд нэмэхэд ашиглана.
 import { useCart } from "@/context/CartContext";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, FALLBACK_IMAGE } from "@/lib/utils";
 
 // Шошгоны өнгийн тохиргоо
 // Барааны badge (шошго) төрлөөс хамаарч ямар өнгийн CSS класс ашиглахыг тодорхойлно.
@@ -68,6 +68,7 @@ export default function ProductCard({ product, priority = false }) {
           fill
           sizes="(max-width:640px)50vw,(max-width:1024px)33vw,25vw"
           priority={priority}
+          onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE; }}
           className={`object-cover transition-transform duration-500 ${
             product.inStock ? "group-hover:scale-105" : "opacity-50"
           }`}

@@ -2,6 +2,7 @@
 // SessionContext — Хэрэглэгчийн нэвтрэлтийн глобал төлөв (Authentication state).
 // login / register / logout / refetch функцуудыг бүх компонентод нэгдсэн байдлаар ашиглуулна.
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { announce } from "@/lib/announcer";
 
 const Ctx = createContext(null);
 
@@ -36,8 +37,12 @@ export function SessionProvider({ children }) {
       body: JSON.stringify({ identifier, password }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Нэвтрэх үйлдэл амжилтгүй боллоо");
+    if (!res.ok) {
+      announce(data.error || "Нэвтрэх үйлдэл амжилтгүй боллоо", "assertive");
+      throw new Error(data.error || "Нэвтрэх үйлдэл амжилтгүй боллоо");
+    }
     setUser(data.user);
+    announce(`Тавтай морил, ${data.user.name || data.user.email}`);
     return data.user;
   }, []);
 
@@ -49,8 +54,13 @@ export function SessionProvider({ children }) {
       body: JSON.stringify({ firstName, lastName, phone, email, password }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.errors?.[0]?.msg ?? data.error ?? "Бүртгэл амжилтгүй боллоо");
+    if (!res.ok) {
+      const errMsg = data.errors?.[0]?.msg ?? data.error ?? "Бүртгэл амжилтгүй боллоо";
+      announce(errMsg, "assertive");
+      throw new Error(errMsg);
+    }
     setUser(data.user);
+    announce("Бүртгэл амжилттай. Тавтай морил!");
     return data.user;
   }, []);
 
@@ -58,6 +68,7 @@ export function SessionProvider({ children }) {
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setUser(null);
+    announce("Системээс амжилттай гарлаа");
   }, []);
 
   return (

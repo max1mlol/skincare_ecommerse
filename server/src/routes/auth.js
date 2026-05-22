@@ -71,7 +71,7 @@ router.post('/register', [
 });
 
 // POST /api/auth/login - Системд нэвтрэх зам
-router.post('/login', loginLimiter, [
+router.post('/login', ...(process.env.NODE_ENV === 'test' ? [] : [loginLimiter]), [
   body('identifier').trim().notEmpty().withMessage('Имэйл эсвэл утасны дугаар оруулна уу'), // Имэйл эсвэл утас заавал шаардлагатай
   body('password').notEmpty().withMessage('Нууц үг оруулна уу'), // Нууц үг заавал шаардлагатай
 ], async (req, res, next) => {
@@ -101,7 +101,7 @@ router.post('/login', loginLimiter, [
       if (err) return next(err); // Алдаа гарвал дамжуулна
       req.session.userId = user.id; // sessionэд хэрэглэгчийн ID-ийг олгоно
       req.session.role   = user.role; // sessionэд хэрэглэгчийн үүргийг олгоно
-      const { password_hash, salt, first_name, last_name, ...safeUser } = user; // Нууц үгийн хэш, давс зэрэг эмзэг өгөгдлийг хасаж, аюулгүй хэрэглэгчийн объект үүсгэнэ
+      const { password_hash, salt, ...safeUser } = user; // Нууц үгийн хэш, давс зэрэг эмзэг өгөгдлийг хасаж, аюулгүй хэрэглэгчийн объект үүсгэнэ
       return res.json({ user: safeUser }); // Аюулгүй хэрэглэгчийн мэдээллийг JSON хариу болгож илгээнэ
     });
   } catch (err) { 

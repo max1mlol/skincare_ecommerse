@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { BadgeCheck, ShieldCheck, Sparkles, Truck, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { pageMetadata } from "@/lib/metadata";
 
 // ── ҮНЭТ ЗҮЙЛСИЙН ЖАГСААЛТ ────────────────────────────────────────────────────
 // "Яагаад биднийг сонгох вэ?" хэсэгт 4 карт болгон харагдана.
@@ -49,11 +50,11 @@ const TEAM = [
   { name: "Тэнгис Батаа",   role: "Бүтээгдэхүүн хариуцсан менежер", initials: "ТБ" },
 ];
 
-// SEO мета мэдээлэл — Next.js автоматаар <head> дотор оруулна
-export const metadata = {
-  title: "Бидний тухай — AURA SKIN",
+export const metadata = pageMetadata({
+  title:       "Бидний тухай",
   description: "AURA SKIN-ийн тухай. Манай зорилго, үнэт зүйлс, баг.",
-};
+  path:        "/about",
+});
 
 export default function AboutPage() {
   return (

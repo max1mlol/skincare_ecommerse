@@ -423,7 +423,7 @@ export default function ProductDetailPage({ params }) {
                 {related.map((p) => (
                   <Link key={p.id} href={`/products/${p.slug}`} className="group">
                     <div className="relative aspect-square bg-muted/30 rounded-xl overflow-hidden mb-3 border border-border/40">
-                      <Image src={p.image} alt={p.nameMn} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <Image src={getImageUrl(p.image)} alt={p.nameMn} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] mb-1">{p.categoryMn}</p>
                     <p className="text-sm font-medium text-foreground group-hover:underline underline-offset-2">{p.nameMn}</p>

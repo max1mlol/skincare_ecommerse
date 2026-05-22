@@ -1,7 +1,7 @@
 "use client";
 // account/profile/page.js — Хэрэглэгчийн хувийн тохиргооны хуудас.
 // Эндээс хэрэглэгч өөрийн овог, нэр, утасны дугаар, аватар зургаа солих болон нууц үгээ өөрчлөх боломжтой.
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera, User, ShoppingBag, Shield, LogOut } from "lucide-react";
@@ -16,10 +16,12 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import Navbar        from "@/components/Navbar";
 import Footer        from "@/components/Footer";
 import { getImageUrl } from "@/lib/utils";
+import { announce } from "@/lib/announcer";
 
 export default function ProfilePage() {
   const { user, loading: authLoading, refetch, logout } = useSession();
   const router = useRouter();
+  const avatarInputRef = useRef(null);
 
   // form: Хэрэглэгчийн овог нэр, утасны дугаар зэргийг өөрчлөх state
   const [form,    setForm]    = useState({ firstName: "", lastName: "", email: "", phone: "" });
@@ -58,10 +60,14 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Хадгалахад алдаа гарлаа");
       
-      await refetch(); // Глобал session өгөгдлийг дахин дуудаж шинэчилнэ
+      await refetch();
       setIsEditing(false);
       setMsg({ type: "ok", text: "Профайл амжилттай шинэчлэгдлээ" });
-    } catch (err) { setMsg({ type: "err", text: err.message }); }
+      announce("Профайл амжилттай шинэчлэгдлээ");
+    } catch (err) {
+      setMsg({ type: "err", text: err.message });
+      announce(err.message, "assertive");
+    }
     finally { setSaving(false); }
   }
 
@@ -96,7 +102,13 @@ export default function ProfilePage() {
     const res = await fetch(`/api/users/${user.id}/avatar`, {
       method: "POST", credentials: "include", body: fd,
     });
-    if (res.ok) { await refetch(); } // Зураг солигдсон тул профайлаа шинэчлэнэ
+    if (res.ok) {
+      await refetch();
+      announce("Профайл зураг амжилттай шинэчлэгдлээ");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      announce(data.error || "Зураг байршуулахад алдаа гарлаа", "assertive");
+    }
   }
 
   if (authLoading || !user) return null;
@@ -122,10 +134,23 @@ export default function ProfilePage() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <label className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Зураг солих">
+                  <button
+                    type="button"
+                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => avatarInputRef.current?.click()}
+                    aria-label="Профайл зураг солих"
+                    title="Зураг солих"
+                  >
                     <Camera size={10} />
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
-                  </label>
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    aria-label="Профайл зураг сонгох"
+                    onChange={handleAvatarChange}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{user.name}</p>
@@ -164,7 +189,11 @@ export default function ProfilePage() {
                 
                 {/* Амжилттай эсвэл алдаатай бол зурвас харуулна */}
                 {msg.text && (
-                  <Alert variant={msg.type === "ok" ? "default" : "destructive"} className={`mb-6 ${msg.type === "ok" ? "border-green-200 bg-green-50/50 text-green-700 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-400" : ""}`}>
+                  <Alert
+                    variant={msg.type === "ok" ? "default" : "destructive"}
+                    aria-live={msg.type === "err" ? "assertive" : "polite"}
+                    className={`mb-6 ${msg.type === "ok" ? "border-green-200 bg-green-50/50 text-green-700 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-400" : ""}`}
+                  >
                     {msg.type === "ok" ? <CheckCircle2 className={`h-4 w-4 ${msg.type === "ok" ? "stroke-green-600 dark:stroke-green-400" : ""}`} /> : <AlertCircle className="h-4 w-4" />}
                     <AlertDescription>{msg.text}</AlertDescription>
                   </Alert>

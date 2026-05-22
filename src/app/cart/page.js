@@ -13,7 +13,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, FALLBACK_IMAGE } from "@/lib/utils";
 
 // lucide-react icon-ууд
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft } from "lucide-react";
@@ -94,7 +94,7 @@ export default function CartPage() {
                     {/* Барааны зураг болон нэр */}
                     <div className="sm:col-span-6 flex gap-4 items-center">
                       <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted/30 shrink-0 border border-border/30">
-                        <Image src={getImageUrl(item.image)} alt={item.name} fill sizes="80px" className="object-cover" />
+                        <Image src={getImageUrl(item.image)} alt={item.name} fill sizes="80px" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE; }} className="object-cover" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground leading-snug">{item.name}</p>

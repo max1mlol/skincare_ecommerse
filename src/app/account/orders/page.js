@@ -1,7 +1,7 @@
 "use client";
 // account/orders/page.js: Хэрэглэгчийн өөрийн захиалгын түүхийг харах хуудас.
 // Эндээс хэрэглэгч өөрийн хийсэн захиалгуудын статус, үнийн дүн, огноо зэргийг хянах боломжтой.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Package, ChevronRight, User, ShoppingBag, Shield, LogOut, Camera } from "lucide-react";
@@ -30,6 +30,7 @@ const STATUS_MN = {
 export default function MyOrdersPage() {
   const { user, loading: authLoading, logout, refetch } = useSession();
   const router   = useRouter();
+  const avatarInputRef = useRef(null);
   const [orders,  setOrders]  = useState([]); // Захиалгуудын жагсаалт
   const [loading, setLoading] = useState(true); // Ачаалалтын төлөв
 
@@ -82,10 +83,22 @@ export default function MyOrdersPage() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <label className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                  <button
+                    type="button"
+                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => avatarInputRef.current?.click()}
+                    aria-label="Профайл зураг солих"
+                  >
                     <Camera size={10} />
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
-                  </label>
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    aria-label="Профайл зураг сонгох"
+                    onChange={handleAvatarChange}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{user.name}</p>

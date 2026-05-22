@@ -2,14 +2,14 @@
 // index.js — Express серверийн үндсэн файл (API Entry Point).
 // Энэхүү файл нь Express серверийг үүсгэж, шаардлагатай хамгаалалтын давхаргууд (middleware),
 // Session удирдлага (session state), болон өгөгдлийн сангийн холболтуудыг нэгтгэн серверийг эхлүүлнэ.
-require('dotenv').config();
+require('dotenv').config(); //loads env. variables from .env file.
 
 const express   = require('express');
 const session   = require('express-session');
 const PgSession = require('connect-pg-simple')(session); // Session санах ой (RAM) дээр биш PostgreSQL DB рүү хадгалах сан
 const helmet    = require('helmet'); // HTTP толгой мэдээллүүдийг хамгаалж аюулгүй болгох сан
 const cors      = require('cors'); // Өөр домэйноос (Жишээ нь Next.js) хандах эрхийг удирдах сан
-const morgan    = require('morgan'); // Ирж буй хүсэлтийн хаяг болон статусыг консол дээр хэвлэх логгер
+const morgan    = require('morgan'); // Ирж буй хүсэлтийн хаяг болон статусыг консол дээр хэвлэх логгер   
 const path      = require('node:path');
 const { pool }  = require('./config/db');
 const { apiLimiter } = require('./middleware/rateLimiter'); // Хүсэлтийн хурд хязгаарлагч middleware
@@ -60,8 +60,8 @@ app.use(session({
   },
 }));
 
-// 8. Бүх /api/* хаягууд дээр хүсэлтийн тооны хязгаарлалт (DDoS, brute-force-оос сэргийлэх) тавина
-app.use('/api', apiLimiter);
+// 8. Бүх /api/* хаягууд дээр хүсэлтийн тооны хязгаарлалт (тестийн горимд идэвхгүй)
+if (!TEST) app.use('/api', apiLimiter);
 
 // 9. API Чиглүүлэгч замууд (Routes)
 app.use('/api/auth',    require('./routes/auth').router);

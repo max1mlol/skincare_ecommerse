@@ -13,7 +13,7 @@ import { useEffect, useState, useCallback } from "react";
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, FALLBACK_IMAGE } from "@/lib/utils";
 
 // shadcn/ui Command компонентууд:
 // CommandDialog    — нэвчилтэнд нэвтрэх харилцах цонх (modal)
@@ -224,6 +224,7 @@ export function SearchPalette() {
                   alt={p.nameMn}
                   width={36}
                   height={36}
+                  onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE; }}
                   className="w-full h-full object-cover"
                 />
               </div>

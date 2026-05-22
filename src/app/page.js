@@ -23,6 +23,13 @@ import Footer               from "@/components/Footer";
 import BranchesSection      from "@/components/BranchesSection";
 import MarqueeTicker        from "@/components/MarqueeTicker";
 import FeaturedProducts     from "@/components/FeaturedProducts";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata({
+  title:       "Нүүр хуудас",
+  description: "AURA SKIN — Монголын тэргүүлэх арьс арчилгааны дэлгүүр. COSRX, La Roche-Posay, CeraVe зэрэг 100% оригинал бүтээгдэхүүн.",
+  path:        "/",
+});
 
 // Нүүр хуудасны ангиллын дугуй зурагт холбоосуудын жагсаалт
 const HOME_CATEGORIES = [

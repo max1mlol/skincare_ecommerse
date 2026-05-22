@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "npm test --prefix server",
+    "test:server": "npm test --prefix server"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
