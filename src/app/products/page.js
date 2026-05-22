@@ -33,7 +33,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { SORT_OPTIONS, SKINCARE_ROUTINE, BRANDS, SKIN_TYPES, SKIN_CONCERNS } from "@/lib/products";
+import { SORT_OPTIONS, SKINCARE_ROUTINE, CATEGORIES, BRANDS, SKIN_TYPES, SKIN_CONCERNS } from "@/lib/products";
 
 // Хамгийн дээд үнэ (Slider-т ашиглана)
 const MAX_PRICE = 200000;
@@ -93,6 +93,20 @@ function FilterPanel({ filters, onChange, onReset }) {
 
   return (
     <div className="flex flex-col">
+      <FilterSection title="Ангилал" defaultOpen>
+        <div className="flex flex-col gap-0.5">
+          {CATEGORIES.filter((c) => c.value !== "all").map((c) => (
+            <FilterCheck
+              key={c.value}
+              id={`cat-${c.value}`}
+              label={c.label}
+              checked={filters.categories.includes(c.value)}
+              onChange={() => toggle("categories", c.value)}
+            />
+          ))}
+        </div>
+      </FilterSection>
+
       {/* 1. Арьс арчилгаа (Subcategories) */}
       <FilterSection title="Арьс арчилгаа" defaultOpen>
         {SKINCARE_ROUTINE.map((group) => (
@@ -200,6 +214,7 @@ function FilterPanel({ filters, onChange, onReset }) {
 
 // Анхны шүүлтүүрийн төлөв
 const DEFAULT_FILTERS = {
+  categories: [],
   subcategories: [],
   brands: [],
   skinTypes: [],
@@ -212,6 +227,10 @@ const DEFAULT_FILTERS = {
 // ── ProductsPage үндсэн компонент ─────────────────────────────────────────────
 function ProductsPage() {
   const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("q") ?? "";
+  const urlCategory = searchParams.get("cat");
+  const urlBrand = searchParams.get("brand");
+  const urlSort = searchParams.get("sort");
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -241,16 +260,19 @@ function ProductsPage() {
   }, []);
 
   // search: текст хайлт
-  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [search, setSearch] = useState(() => urlSearch);
 
   // sort: эрэмбэлэх төрөл (featured, price-asc, etc.)
-  const [sort, setSort] = useState("featured");
+  const [sort, setSort] = useState(() =>
+    SORT_OPTIONS.some((o) => o.value === urlSort) ? urlSort : "featured"
+  );
 
   // filters: бүх идэвхтэй шүүлтүүрүүд
   const [filters, setFilters] = useState(() => ({
     ...DEFAULT_FILTERS,
+    categories: urlCategory ? [urlCategory] : [],
     // Хэрэв URL-аар брэндийн хаяг орж ирвэл шууд шүүнэ
-    brands: searchParams.get("brand") ? [searchParams.get("brand")] : [],
+    brands: urlBrand ? [urlBrand] : [],
   }));
 
   const updateSearch = useCallback((value) => {
@@ -278,6 +300,7 @@ function ProductsPage() {
   // Хэдэн төрлийн шүүлтүүр идэвхтэй байгааг тоолох (badge харуулахад)
   const activeFilterCount = useMemo(() => {
     let n = 0;
+    if (filters.categories.length) n++;
     if (filters.subcategories.length) n++;
     if (filters.brands.length) n++;
     if (filters.skinTypes.length) n++;
@@ -304,36 +327,44 @@ function ProductsPage() {
       );
     }
 
-    // 2. Дэд төрөл (Subcategory)
-    if (filters.subcategories.length) {
-      result = result.filter((p) => filters.subcategories.includes(p.subcategory));
+    // 2. Ангилал
+    if (filters.categories.length) {
+      result = result.filter((p) => filters.categories.includes(p.category));
     }
 
-    // 3. Брэнд
+    // 3. Дэд төрөл (Subcategory)
+    if (filters.subcategories.length) {
+      result = result.filter((p) =>
+        filters.subcategories.includes(p.subcategory) ||
+        filters.subcategories.includes(p.category)
+      );
+    }
+
+    // 4. Брэнд
     if (filters.brands.length) {
       result = result.filter((p) => filters.brands.includes(p.brand));
     }
 
-    // 4. Арьсны төрөл (Барааны skinTypes массивт сонгосон төрөл байгаа эсэх)
+    // 5. Арьсны төрөл (Барааны skinTypes массивт сонгосон төрөл байгаа эсэх)
     if (filters.skinTypes.length) {
       result = result.filter((p) =>
         filters.skinTypes.some((t) => p.skinTypes?.includes(t))
       );
     }
 
-    // 5. Арьсны асуудал
+    // 6. Арьсны асуудал
     if (filters.skinConcerns.length) {
       result = result.filter((p) =>
         filters.skinConcerns.some((c) => p.skinConcerns?.includes(c))
       );
     }
 
-    // 6. Үнийн хүрээ
+    // 7. Үнийн хүрээ
     result = result.filter(
       (p) => p.price >= filters.minPrice && p.price <= filters.maxPrice
     );
 
-    // 7. Зөвхөн байгаа бараа
+    // 8. Зөвхөн байгаа бараа
     if (filters.inStockOnly) result = result.filter((p) => p.inStock);
 
     // ── ЭРЭМБЭЛЭХ (SORTING) ──
@@ -466,6 +497,14 @@ function ProductsPage() {
           {/* ИДЭВХТЭЙ ШҮҮЛТҮҮРИЙН ШОШГОНУУД (Active Filter Pills) */}
           {activeFilterCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
+              {filters.categories.map((c) => (
+                <span key={c} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
+                  {CATEGORIES.find((item) => item.value === c)?.label ?? c}
+                  <button onClick={() => updateFilters((p) => ({ ...p, categories: p.categories.filter((x) => x !== c) }))}>
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
               {filters.brands.map((b) => (
                 <span key={b} className="flex items-center gap-1.5 text-xs border border-border rounded-full px-3 py-1">
                   {b}
@@ -611,10 +650,15 @@ function ProductsPage() {
 
 // ── Wrapper (Suspense шаардлагатай) ───────────────────────────────────────────
 // useSearchParams ашигладаг тул Client Side-д Suspense дотор байх ёстой.
+function ProductsPageWithParamsKey() {
+  const searchParams = useSearchParams();
+  return <ProductsPage key={searchParams.toString()} />;
+}
+
 export default function ProductsPageWrapper() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Уншиж байна...</div>}>
-      <ProductsPage />
+      <ProductsPageWithParamsKey />
     </Suspense>
   );
 }
